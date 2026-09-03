@@ -96,3 +96,7 @@ The architecture is documented in [docs/opening-up-twin.md](docs/opening-up-twin
 (the roadmap), [docs/phase3-data-port.md](docs/phase3-data-port.md) (the
 storage port every backend implements), and
 [docs/phase4-plugins.md](docs/phase4-plugins.md) (the plugin system).
+
+## License
+
+[MIT](LICENSE) — use it, change it, build a business on it.
