@@ -20,7 +20,8 @@ import {
   updateItem,
   updateItems
 } from '@directus/sdk';
-import { directus, authHeader, assetAuthParam } from '$lib/data/client';
+import { directus } from '$lib/data/client';
+import { authHeader, assetAuthParam } from '$lib/data/credentials';
 import { directusAbsolute } from '$lib/apiBase';
 import type { AggregateQuery, AuthProvider, Filter, Id, Query, Repository } from './types';
 

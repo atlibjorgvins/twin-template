@@ -449,7 +449,7 @@
       return;
     }
     const slug = (name || 'campaign').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    downloadMetaBulkXlsx(
+    void downloadMetaBulkXlsx(
       { campaign: data.campaign, metaCampaigns, adSets, ads, imageFileNames },
       `${slug || 'campaign'}-meta-import.xlsx`
     );

@@ -772,7 +772,19 @@
             {/if}
           </li>
         {:else}
-          <li class="px-4 py-6 text-center text-sm text-ink-400">{loading ? 'Searching…' : 'No results'}</li>
+          <li class="px-4 py-6 text-center text-sm text-ink-400">
+            {#if loading}
+              Searching…
+            {:else if total === 0 && !q.trim()}
+              <span class="block">No people yet.</span>
+              <span class="mt-1 block">
+                Add your first with <span class="font-medium" style="color: var(--text-primary);">+ New person</span>
+                — or <a href="/settings/storage" class="underline hover:text-ink-700">import a twin export</a>.
+              </span>
+            {:else}
+              No results
+            {/if}
+          </li>
         {/each}
       </ul>
     </div>

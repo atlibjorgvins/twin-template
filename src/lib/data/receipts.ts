@@ -8,7 +8,7 @@
 // unchanged: directus.ts re-exports this module.
 
 import { repo } from '$lib/data/repo';
-import { authHeader } from '$lib/data/client';
+import { authHeader } from '$lib/data/credentials';
 import { PUBLIC_DIRECTUS_URL } from '$env/static/public';
 import { uploadFile } from '$lib/data/batch';
 

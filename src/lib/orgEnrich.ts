@@ -15,7 +15,7 @@
 // discontinued, so we no longer try it.
 
 import type { Organization } from './directus';
-import { authHeader } from '$lib/data/client';
+import { authHeader } from '$lib/data/credentials';
 
 /** Extract a domain from email or website, or guess from `${name}.is`. */
 export function domainFromOrg(org: Organization): string | null {

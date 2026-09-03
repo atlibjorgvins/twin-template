@@ -15,7 +15,6 @@
 // ("Body" = primary text, "Title" = headline) — if Meta rejects a
 // column, export one existing campaign from Ads Manager and mirror
 // its headers here; everything routes through this one table.
-import * as XLSX from 'xlsx';
 import type { MkAd, MkAdSet, MkCampaign, MkMetaCampaign, MkTargeting } from '$lib/directus';
 
 export type MetaBulkInput = {
@@ -155,7 +154,9 @@ export function adImageFileName(ad: MkAd, ext = 'jpg'): string {
 }
 
 /** Generate the XLSX and hand it to the browser as a download. */
-export function downloadMetaBulkXlsx(input: MetaBulkInput, fileName: string): void {
+export async function downloadMetaBulkXlsx(input: MetaBulkInput, fileName: string): Promise<void> {
+  // xlsx is ~450KB — loaded on demand so it never rides the boot graph.
+  const XLSX = await import('xlsx');
   const rows = buildMetaBulkRows(input);
   const sheet = XLSX.utils.json_to_sheet(rows, { header: [...COLUMNS] });
   const book = XLSX.utils.book_new();

@@ -5,7 +5,12 @@
 // Split out of directus.ts — see docs/opening-up-twin.md. Public surface is
 // unchanged: directus.ts re-exports this module.
 
-import { directus } from '$lib/data/client';
+// Lazy client: this module rides the eager data layer, and a static client
+// import would drag @directus/sdk into every boot (see the hub's same fix).
+const directus = {
+  request: (async (query: unknown) =>
+    (await import('$lib/data/client')).directus.request(query as never)) as (typeof import('$lib/data/client'))['directus']['request']
+};
 import type { MkAd, MkAdSet, MkMetaCampaign, MkTargeting } from '$lib/data/marketing';
 import { createMkAd, createMkAdSet, createMkMetaCampaign, getMkStructure } from '$lib/data/marketing';
 import { metaGraphAll } from '$lib/data/meta';

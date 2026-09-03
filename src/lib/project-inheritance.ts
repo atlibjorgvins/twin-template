@@ -17,8 +17,7 @@
  * Edits made directly in Directus admin bypass this — re-run
  * `backfillProjectInheritance()` to heal drift.
  */
-import { readItems, createItem, deleteItem, updateItem } from '@directus/sdk';
-import { directus } from '$lib/directus';
+import { repo } from '$lib/data/repo';
 
 type Junction = 'Project_people' | 'Project_organization';
 type Fk = 'person_id' | 'organization_id';
@@ -32,9 +31,11 @@ function makeAncestorWalker() {
   const parentCache = new Map<number, number | null>();
   async function parentOf(id: number): Promise<number | null> {
     if (parentCache.has(id)) return parentCache.get(id)!;
-    const rows = (await directus.request(
-      readItems('Project', { filter: { id: { _eq: id } }, fields: ['id', 'parent_id'], limit: 1 } as never)
-    )) as Array<{ id: number; parent_id: number | { id: number } | null }>;
+    const rows = await repo.list<{ id: number; parent_id: number | { id: number } | null }>('Project', {
+      where: { field: 'id', op: 'eq', value: id },
+      fields: ['id', 'parent_id'],
+      limit: 1
+    });
     const parent = rows[0] ? idOf(rows[0].parent_id) : null;
     parentCache.set(id, parent);
     return parent;
@@ -59,17 +60,19 @@ function makeAncestorWalker() {
  * current direct memberships. Diff-based: only writes what changed.
  */
 async function reconcile(collection: Junction, fk: Fk, entityId: number): Promise<void> {
-  const rows = (await directus.request(
-    readItems(collection as never, {
-      filter: { _and: [{ status: { _neq: 'archived' } }, { [fk]: { _eq: entityId } }] },
-      fields: ['id', 'project_id', 'inherited_from_project_id'],
-      limit: -1
-    } as never)
-  )) as Array<{
+  const rows = await repo.list<{
     id: number;
     project_id: number | { id: number } | null;
     inherited_from_project_id: number | { id: number } | null;
-  }>;
+  }>(collection, {
+    where: {
+      and: [
+        { field: 'status', op: 'neq', value: 'archived' },
+        { field: fk, op: 'eq', value: entityId }
+      ]
+    },
+    fields: ['id', 'project_id', 'inherited_from_project_id']
+  });
 
   const directProjectIds: number[] = [];
   const inheritedRows: Array<{ id: number; project: number; source: number | null }> = [];
@@ -97,7 +100,7 @@ async function reconcile(collection: Junction, fk: Fk, entityId: number): Promis
   const existingByProject = new Map<number, { id: number; source: number | null }>();
   for (const ir of inheritedRows) {
     if (existingByProject.has(ir.project)) {
-      await directus.request(deleteItem(collection as never, ir.id));
+      await repo.remove(collection, ir.id);
       continue;
     }
     existingByProject.set(ir.project, { id: ir.id, source: ir.source });
@@ -107,24 +110,20 @@ async function reconcile(collection: Junction, fk: Fk, entityId: number): Promis
   for (const [ancestor, src] of target) {
     const ex = existingByProject.get(ancestor);
     if (!ex) {
-      await directus.request(
-        createItem(collection as never, {
-          [fk]: entityId,
-          project_id: ancestor,
-          inherited_from_project_id: src,
-          status: 'published'
-        } as never)
-      );
+      await repo.create(collection, {
+        [fk]: entityId,
+        project_id: ancestor,
+        inherited_from_project_id: src,
+        status: 'published'
+      });
     } else if ((ex.source == null || !directSet.has(ex.source)) && ex.source !== src) {
-      await directus.request(
-        updateItem(collection as never, ex.id, { inherited_from_project_id: src } as never)
-      );
+      await repo.update(collection, ex.id, { inherited_from_project_id: src });
     }
   }
 
   // Delete inherited rows no longer justified by any direct membership.
   for (const [proj, ex] of existingByProject) {
-    if (!target.has(proj)) await directus.request(deleteItem(collection as never, ex.id));
+    if (!target.has(proj)) await repo.remove(collection, ex.id);
   }
 }
 
@@ -153,23 +152,27 @@ export async function reconcileOrgProjectInheritance(orgId: number): Promise<voi
  * (e.g. after direct-in-Directus edits). Returns how many entities ran.
  */
 export async function backfillProjectInheritance(): Promise<{ people: number; orgs: number }> {
-  const peopleRows = (await directus.request(
-    readItems('Project_people', {
-      filter: { _and: [{ status: { _neq: 'archived' } }, { inherited_from_project_id: { _null: true } }] },
-      fields: ['person_id'],
-      limit: -1
-    } as never)
-  )) as Array<{ person_id: number | { id: number } | null }>;
+  const peopleRows = await repo.list<{ person_id: number | { id: number } | null }>('Project_people', {
+    where: {
+      and: [
+        { field: 'status', op: 'neq', value: 'archived' },
+        { field: 'inherited_from_project_id', op: 'null' }
+      ]
+    },
+    fields: ['person_id']
+  });
   const personIds = [...new Set(peopleRows.map((r) => idOf(r.person_id)).filter((v): v is number => v != null))];
   for (const id of personIds) await reconcilePersonProjectInheritance(id);
 
-  const orgRows = (await directus.request(
-    readItems('Project_organization', {
-      filter: { _and: [{ status: { _neq: 'archived' } }, { inherited_from_project_id: { _null: true } }] },
-      fields: ['organization_id'],
-      limit: -1
-    } as never)
-  )) as Array<{ organization_id: number | { id: number } | null }>;
+  const orgRows = await repo.list<{ organization_id: number | { id: number } | null }>('Project_organization', {
+    where: {
+      and: [
+        { field: 'status', op: 'neq', value: 'archived' },
+        { field: 'inherited_from_project_id', op: 'null' }
+      ]
+    },
+    fields: ['organization_id']
+  });
   const orgIds = [...new Set(orgRows.map((r) => idOf(r.organization_id)).filter((v): v is number => v != null))];
   for (const id of orgIds) await reconcileOrgProjectInheritance(id);
 

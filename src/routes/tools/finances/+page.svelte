@@ -153,7 +153,7 @@
     if (!f) return;
     importing = true; importMsg = ''; error = '';
     try {
-      const parsed = parseLandsbankinn(await f.arrayBuffer());
+      const parsed = await parseLandsbankinn(await f.arrayBuffer());
       if (parsed.rowCount === 0) { importMsg = 'No transactions found in that file.'; return; }
       const rows = parsed.rows.map((r) => ({ ...r, category: applyFinanceRules(r.description, rules) }));
       const res = await importFinanceTxns(rows);

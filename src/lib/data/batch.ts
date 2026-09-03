@@ -5,7 +5,7 @@
 // Split out of directus.ts — see docs/opening-up-twin.md. Public surface is
 // unchanged: directus.ts re-exports this module.
 
-import { authHeader } from '$lib/data/client';
+import { authHeader } from '$lib/data/credentials';
 import { repo } from '$lib/data/repo';
 import { PUBLIC_DIRECTUS_URL } from '$env/static/public';
 import type { Organization, Person, Project } from '$lib/data/types';

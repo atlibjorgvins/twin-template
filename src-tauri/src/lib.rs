@@ -72,6 +72,9 @@ fn open_in_main(app: tauri::AppHandle, path: String) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        // Remember main-window size/position between launches. The spotlight
+        // window is excluded implicitly: it is created per-summon and centered.
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
             toggle_spotlight,
             hide_spotlight,

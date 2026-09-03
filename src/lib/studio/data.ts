@@ -4,7 +4,7 @@
 // candidate/token machinery for record selection and dynamic text.
 import { PUBLIC_DIRECTUS_URL } from '$env/static/public';
 import { resolveProjectBrand, textColorFor, type CampaignFilters, type CampaignSource } from '$lib/directus';
-import { authHeader } from '$lib/data/client';
+import { authHeader } from '$lib/data/credentials';
 import { repo } from '$lib/data/repo';
 
 // ── Layer model ─────────────────────────────────────────────────────

@@ -6,7 +6,27 @@
   // (the wizard applies on finish, settings on its Apply button) via the
   // bindable props.
   import { activeBackend, deviceDirectusUrl, type BackendId } from '$lib/data/repo';
+  import { SUPABASE_SETUP_SQL } from '$lib/data/repo/supabaseSetup';
   import { PUBLIC_DIRECTUS_URL } from '$env/static/public';
+
+  // Collapsible one-time database setup for the Supabase option.
+  let showSetup = $state(false);
+  let copiedSetup = $state(false);
+  let copyTimer: ReturnType<typeof setTimeout> | undefined;
+  async function copySetup() {
+    try {
+      await navigator.clipboard.writeText(SUPABASE_SETUP_SQL);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = SUPABASE_SETUP_SQL; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch { /* nothing else to try */ }
+      ta.remove();
+    }
+    copiedSetup = true;
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => (copiedSetup = false), 1600);
+  }
 
   let {
     backendPick = $bindable(activeBackend),
@@ -95,9 +115,41 @@
       <input type="text" class="input w-full" placeholder="eyJhbGciOi…" bind:value={sbKey} />
     </label>
     <p class="text-xs text-ink-400">
-      Both are on your project's API settings page. The anon key is designed to be
-      public — it only grants what your database rules allow.
+      Both are on your project's API settings page. With twin's setup script the anon key
+      unlocks the whole vault — treat it like a password and share it with no one.
     </p>
+
+    <!-- One-time database setup. An anon key cannot create tables, so twin
+         hands over the SQL instead of pretending it can run it. -->
+    <div class="rounded-[10px] border border-surface-border p-3" style="background: var(--bg-secondary);">
+      <button type="button" class="flex w-full items-center justify-between text-left"
+              onclick={() => (showSetup = !showSetup)} aria-expanded={showSetup}>
+        <span class="text-xs font-medium" style="color: var(--text-primary);">
+          First time? Set up the database (one paste)
+        </span>
+        <span class="text-xs text-ink-400">{showSetup ? 'Hide' : 'Show'}</span>
+      </button>
+      {#if showSetup}
+        <ol class="mt-2 list-decimal space-y-1 pl-4 text-xs text-ink-500">
+          <li>Open your project's <span class="font-medium">SQL Editor</span> in the Supabase dashboard.</li>
+          <li>Paste the script and press <span class="font-medium">Run</span> — safe to run twice.</li>
+          <li>Come back here and connect.</li>
+        </ol>
+        <div class="mt-2 flex items-start gap-2">
+          <pre class="max-h-40 min-w-0 flex-1 overflow-auto whitespace-pre rounded-[8px] px-3 py-2 font-mono text-[10px]"
+               style="background: var(--bg-tertiary); color: var(--text-secondary);">{SUPABASE_SETUP_SQL}</pre>
+          <button type="button" onclick={copySetup}
+                  class="shrink-0 rounded-[8px] border border-surface-border px-2.5 py-2 text-xs font-medium text-ink-700 hover:bg-surface-hover">
+            {copiedSetup ? 'Copied ✓' : 'Copy'}
+          </button>
+        </div>
+        <p class="mt-2 text-[11px] text-ink-400">
+          Images are kept on this device when rows live in Supabase (change under
+          Settings → Storage). Team-grade per-user access is on the roadmap; today one
+          project = one person's vault.
+        </p>
+      {/if}
+    </div>
   </div>
 {/if}
 {#if backendPick === 'directus'}

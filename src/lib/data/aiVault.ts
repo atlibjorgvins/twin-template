@@ -8,7 +8,7 @@
 
 import { repo } from '$lib/data/repo';
 import type { Filter } from '$lib/data/repo';
-import { authHeader } from '$lib/data/client';
+import { authHeader } from '$lib/data/credentials';
 import { PUBLIC_DIRECTUS_URL } from '$env/static/public';
 // Type-only: erased at compile time, so no runtime cycle back into
 // the module this was split out of.

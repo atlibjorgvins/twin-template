@@ -1,17 +1,3 @@
-import {
-  readItems,
-  readItem,
-  createItem,
-  createItems,
-  updateItem,
-  updateItems,
-  deleteItem,
-  deleteItems,
-  aggregate,
-  importFile,
-  deleteFile,
-  readFiles
-} from '@directus/sdk';
 import { PUBLIC_DIRECTUS_URL } from '$env/static/public';
 
 // Names still used by code left in this file. `export * from` below makes them
@@ -76,11 +62,19 @@ export {
 } from './regions';
 
 // ── The Directus client ──────────────────────────────────────────────────
-// Moved to $lib/data/client.ts (with the request-coalescing fetch). Imported
-// here so the rest of this file keeps using `directus` unchanged, and
-// re-exported so external callers do too.
-import { directus } from '$lib/data/client';
-export { directus };
+// Moved to $lib/data/client.ts (with the request-coalescing fetch). Re-exported
+// here as a LAZY facade: client.ts statically imports @directus/sdk, and this
+// hub is on every page's load path — a static re-export made every boot parse
+// the SDK even on local/Supabase vaults. The three remaining consumers
+// (project-inheritance, events/data, the holidays loader) only ever call
+// `.request(...)`, which was always async, so the dynamic import is invisible
+// to them. New code should use the repo port, not this.
+export const directus = {
+  // Typed as the REAL client's request (type-only import — erased at build),
+  // so every existing Schema-generic call site type-checks unchanged.
+  request: (async (query: unknown) =>
+    (await import('$lib/data/client')).directus.request(query as never)) as (typeof import('$lib/data/client'))['directus']['request']
+};
 
 export type { Filter };
 

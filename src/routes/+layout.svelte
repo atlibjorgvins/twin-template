@@ -7,7 +7,24 @@
   import ScopeToggle from '$lib/ScopeToggle.svelte';
   import { scope, surfaceInScope, scopeLocked, type SurfaceScope } from '$lib/scope';
   import { featureOn, authEnabled, INSTANCE_LABEL, type FeatureKey } from '$lib/instance';
-  import { activeVault } from '$lib/data/repo/vaults';
+  import { activeVault, vaults, setActiveVault } from '$lib/data/repo/vaults';
+
+  // Vault popover on the rail — switch without a trip through settings.
+  let vaultMenuOpen = $state(false);
+  // The rail clips overflow (that is what makes the nav scroll), so the
+  // popover positions FIXED from the trigger's measured rect instead of
+  // absolute-inside-the-rail, which would be clipped.
+  let vaultMenuPos = $state({ left: 0, bottom: 0 });
+  function openVaultMenu(e: MouseEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    vaultMenuPos = { left: r.right + 8, bottom: window.innerHeight - r.bottom };
+    vaultMenuOpen = !vaultMenuOpen;
+  }
+  function switchVault(id: string) {
+    if (id === activeVault().id) { vaultMenuOpen = false; return; }
+    setActiveVault(id);
+    window.location.href = '/'; // repo is a per-load singleton
+  }
   import { initDesktop } from '$lib/desktop';
 
   // ── Sidebar width (desktop rail) ─────────────────────────────────────
@@ -401,7 +418,10 @@
     class="hidden md:flex print:!hidden sticky top-0 h-screen shrink-0 flex-col justify-between self-start overflow-hidden border-r border-surface-border bg-surface-card py-4 {sidebarWide ? 'px-3' : 'items-center'}"
     style={`width: ${sidebarWide ? '220px' : '72px'}; transition: width 200ms cubic-bezier(0.23, 1, 0.32, 1);`}
   >
-    <div class="flex w-full flex-col gap-3 {sidebarWide ? '' : 'items-center'}">
+    <!-- Top: brand anchored, nav scrolls. min-h-0 lets the flex child shrink
+         so a long plugin list scrolls INSIDE the rail instead of pushing
+         Tools/Settings (anchored below) off screen. -->
+    <div class="flex min-h-0 w-full flex-1 flex-col gap-3 {sidebarWide ? '' : 'items-center'}">
       {#if sidebarWide}
         <!-- The brand wordmark earns the top slot when there is room for it,
              centered on the rail. Dark theme renders it mono-white (app.css
@@ -417,32 +437,73 @@
         </a>
       {/if}
       <div class="mx-2 h-px bg-surface-divider {sidebarWide ? '' : 'w-8'}"></div>
-      {#each visibleTabs as tab}
-        <a
-          href={tab.href}
-          class="nav-icon {sidebarWide ? 'nav-row' : ''} {isActive(tab.href) ? 'nav-icon-active' : ''}"
-          title={tab.label}
-          aria-label={tab.label}
-        >
-          <Icon name={tab.icon} size={18} />
-          {#if sidebarWide}<span class="nav-label">{tab.label}</span>{/if}
-        </a>
-      {/each}
+      <nav class="sidebar-scroll flex min-h-0 w-full flex-1 flex-col gap-3 overflow-y-auto {sidebarWide ? '' : 'items-center'}" aria-label="Primary">
+        {#each visibleTabs as tab}
+          <a
+            href={tab.href}
+            class="nav-icon shrink-0 {sidebarWide ? 'nav-row' : ''} {isActive(tab.href) ? 'nav-icon-active' : ''}"
+            title={tab.label}
+            aria-label={tab.label}
+          >
+            <Icon name={tab.icon} size={18} />
+            {#if sidebarWide}<span class="nav-label">{tab.label}</span>{/if}
+          </a>
+        {/each}
+      </nav>
     </div>
-    <div class="flex w-full flex-col gap-3 {sidebarWide ? '' : 'items-center'}">
+    <!-- Bottom: vault, Tools, Settings, and the collapse chevron are ANCHORED —
+         reachable no matter how many plugins fill the nav above. -->
+    <div class="flex w-full shrink-0 flex-col gap-3 pt-3 {sidebarWide ? '' : 'items-center'}" style="border-top: 1px solid var(--border-subtle);">
       {#if !authEnabled()}
         <!-- The active vault — which world of data this window is in. Click
-             to switch or join another (device-owned connections only; a
+             for the switcher popover (device-owned connections only; a
              managed session-mode instance IS its vault). -->
-        <a
-          href="/settings/vaults"
-          class="nav-icon {sidebarWide ? 'nav-row' : ''} {isActive('/settings/vaults') ? 'nav-icon-active' : ''}"
-          title={`Vault: ${activeVault().name}`}
-          aria-label={`Vault: ${activeVault().name}`}
-        >
-          <Icon name={activeVault().kind === 'workspace' ? 'building' : 'lock'} size={18} />
-          {#if sidebarWide}<span class="nav-label">{activeVault().name}</span>{/if}
-        </a>
+        <div class="relative {sidebarWide ? 'w-full' : ''}">
+          <button
+            type="button"
+            class="nav-icon {sidebarWide ? 'nav-row' : ''}"
+            title={`Vault: ${activeVault().name}`}
+            aria-label={`Vault: ${activeVault().name}`}
+            aria-expanded={vaultMenuOpen}
+            onclick={openVaultMenu}
+          >
+            <Icon name={activeVault().kind === 'workspace' ? 'building' : 'lock'} size={18} />
+            {#if sidebarWide}<span class="nav-label">{activeVault().name}</span>{/if}
+          </button>
+          {#if vaultMenuOpen}
+            <!-- svelte-ignore a11y_no_static_element_interactions — backdrop click-away -->
+            <div class="fixed inset-0 z-40" onclick={() => (vaultMenuOpen = false)}></div>
+            <div
+              class="fixed z-50 w-52 p-1"
+              style={`left: ${vaultMenuPos.left}px; bottom: ${vaultMenuPos.bottom}px; background: var(--bg-primary); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);`}
+              role="menu"
+              aria-label="Switch vault"
+            >
+              {#each vaults() as v (v.id)}
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="flex w-full items-center gap-2 px-2.5 py-2 text-left text-sm"
+                  style={`border-radius: var(--radius-sm); color: var(--text-primary); background: ${v.id === activeVault().id ? 'var(--accent-alpha-10)' : 'transparent'};`}
+                  onclick={() => switchVault(v.id)}
+                >
+                  <Icon name={v.kind === 'workspace' ? 'building' : 'lock'} size={14} />
+                  <span class="min-w-0 flex-1 truncate">{v.name}</span>
+                  {#if v.id === activeVault().id}<Icon name="check" size={13} />{/if}
+                </button>
+              {/each}
+              <div class="mx-1 my-1 h-px" style="background: var(--border-subtle);"></div>
+              <a
+                href="/settings/vaults"
+                role="menuitem"
+                class="block px-2.5 py-2 text-sm text-ink-500 hover:text-ink-900"
+                onclick={() => (vaultMenuOpen = false)}
+              >
+                Manage vaults…
+              </a>
+            </div>
+          {/if}
+        </div>
       {/if}
       <a
         href="/tools"

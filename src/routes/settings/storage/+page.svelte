@@ -12,13 +12,14 @@
     saveBackendChoice,
     deviceDirectusUrl,
     repo,
+    localDump,
     mediaLocation,
     saveMediaLocation,
     type BackendId,
     type MediaLocation
   } from '$lib/data/repo';
-  import { LocalRepository } from '$lib/data/repo/local';
   import { localFileStore } from '$lib/data/repo/files';
+  import { activeVault } from '$lib/data/repo/vaults';
   import { connection } from '$lib/offline';
   import { PUBLIC_DIRECTUS_URL } from '$env/static/public';
   import { onMount } from 'svelte';
@@ -33,8 +34,7 @@
     activeBackend === 'local'
       ? 'IndexedDB inside this app/browser'
       : activeBackend === 'supabase'
-        ? (typeof localStorage !== 'undefined' && localStorage.getItem('twin.supabaseUrl')) ||
-          'the build-configured Supabase project'
+        ? activeVault().supabaseUrl || 'the build-configured Supabase project'
         : effectiveDirectusUrl;
 
   // Row counts through the port — works identically on every backend, and
@@ -91,13 +91,51 @@
     window.location.href = '/settings/storage'; // repo singleton — full reload
   }
 
+  // ── Import (local vault, empty only — ids are preserved as-is) ───────────
+  let importing = $state(false);
+  let importMsg = $state('');
+  const vaultEmpty = $derived((peopleCount ?? 1) === 0 && (orgCount ?? 1) === 0);
+  async function importJson(e: Event) {
+    const file = (e.currentTarget as HTMLInputElement).files?.[0];
+    if (!file || importing) return;
+    importing = true;
+    importMsg = '';
+    try {
+      const payload = JSON.parse(await file.text()) as {
+        collections?: Record<string, Record<string, unknown>[]> | null;
+        media?: Record<string, { type?: string; title?: string; base64: string }>;
+      };
+      let rows = 0;
+      for (const [collection, list] of Object.entries(payload.collections ?? {})) {
+        for (const row of list) {
+          await repo.create(collection, row); // ids preserved: create honors row.id
+          rows++;
+        }
+      }
+      let files = 0;
+      const store = localFileStore();
+      for (const [id, m] of Object.entries(payload.media ?? {})) {
+        const bin = atob(m.base64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        await store.put(new Blob([bytes], { type: m.type }), { id, title: m.title });
+        files++;
+      }
+      importMsg = `Imported ${rows} rows and ${files} images — reloading…`;
+      setTimeout(() => (window.location.href = '/'), 900);
+    } catch (err) {
+      importMsg = `Import failed: ${err instanceof Error ? err.message : 'not a twin export file'}`;
+      importing = false;
+    }
+  }
+
   // ── Export (device data: rows if local, plus any device-stored media) ────
   let exporting = $state(false);
   const hasDeviceMedia = $derived(activeBackend === 'local' || mediaLocation() === 'device');
   async function exportJson() {
     exporting = true;
     try {
-      const rows = repo instanceof LocalRepository ? await repo.dumpAll() : null;
+      const rows = await localDump();
       // Blobs → base64 so one JSON file carries the images too. Fine at
       // personal scale; a media-heavy vault would want a zip — later.
       const media: Record<string, { type?: string; title?: string; base64: string }> = {};
@@ -219,6 +257,26 @@
               style="background: var(--accent-electric); color: var(--accent-text); border-radius: var(--radius-md);">
         <Icon name="download" size={14} /> {exporting ? 'Exporting…' : 'Export'}
       </button>
+    </div>
+  {/if}
+
+  <!-- Import ─────────────────────────────────────────────────────────── -->
+  {#if activeBackend === 'local'}
+    <div class="card flex items-center gap-3 p-4">
+      <div class="min-w-0 flex-1">
+        <div class="font-medium text-ink-900">Import a twin export</div>
+        <div class="text-xs text-ink-500">
+          {vaultEmpty
+            ? 'Restore a twin-export JSON file into this vault — rows, images, ids, everything.'
+            : 'Imports only into an empty vault, so nothing collides — create a fresh vault (Settings → Vaults) and import there.'}
+        </div>
+        {#if importMsg}<div class="mt-1 text-xs" style="color: var(--text-secondary);">{importMsg}</div>{/if}
+      </div>
+      <label class="shrink-0 cursor-pointer px-4 py-2 font-display text-sm font-medium"
+             style={`background: var(--bg-tertiary); color: var(--text-primary); border-radius: var(--radius-md); opacity: ${vaultEmpty && !importing ? 1 : 0.4};`}>
+        {importing ? 'Importing…' : 'Import'}
+        <input type="file" accept="application/json" class="hidden" disabled={!vaultEmpty || importing} onchange={importJson} />
+      </label>
     </div>
   {/if}
 

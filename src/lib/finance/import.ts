@@ -9,7 +9,6 @@
 //
 // Amounts: negative = expense, positive = income (ISK). A composite dedup_key
 // lets re-imports of the full year skip rows already stored.
-import * as XLSX from 'xlsx';
 import type { FinanceTxnInput } from '$lib/directus';
 
 export type ParsedImport = {
@@ -74,7 +73,9 @@ function matchHeader(cell: unknown): string | null {
   return null;
 }
 
-export function parseLandsbankinn(buffer: ArrayBuffer): ParsedImport {
+export async function parseLandsbankinn(buffer: ArrayBuffer): Promise<ParsedImport> {
+  // xlsx is ~450KB — loaded on demand so it never rides the boot graph
+  const XLSX = await import('xlsx');
   const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const grid = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, blankrows: false });

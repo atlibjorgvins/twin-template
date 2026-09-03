@@ -80,9 +80,9 @@ export class LocalFileStore {
 
   /** Store a file; returns its id. The object URL is available immediately,
    *  so the uploading page can render the image without a reload. */
-  async put(file: Blob, meta: { title?: string } = {}): Promise<string> {
+  async put(file: Blob, meta: { title?: string; id?: string } = {}): Promise<string> {
     const entry: StoredFile = {
-      id: uuid(),
+      id: meta.id ?? uuid(),
       blob: file,
       title: meta.title,
       type: file.type,

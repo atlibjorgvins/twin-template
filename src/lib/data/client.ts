@@ -12,6 +12,7 @@
 import { createDirectus, rest, staticToken, authentication } from '@directus/sdk';
 import { PUBLIC_DIRECTUS_URL, PUBLIC_DIRECTUS_TOKEN } from '$env/static/public';
 import { deviceDirectusToken } from '$lib/data/repo/directusConfig';
+export { authHeader, assetAuthParam } from '$lib/data/credentials';
 import { directusAbsolute } from '$lib/apiBase';
 import { authEnabled } from '$lib/instance';
 import type { Schema } from '$lib/data/schema';
@@ -114,14 +115,6 @@ export const directus = buildClient();
  * session lands (docs/phase2-auth.md §4) this function starts returning the
  * live access token and nothing else has to change.
  */
-export function authHeader(): Record<string, string> {
-  // Session mode: the httpOnly cookie authenticates every request, so there is
-  // no header to add (and no token in JS to build one from). Static-token mode:
-  // the bearer header, exactly as before.
-  if (authEnabled()) return {};
-  const token = deviceDirectusToken() || PUBLIC_DIRECTUS_TOKEN;
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 /**
  * The credential for asset URLs — `<img src>`, `<video src>`, download links.
@@ -139,11 +132,3 @@ export function authHeader(): Record<string, string> {
  * Isolated here so that when sessions land there is one function to change
  * rather than a search for every image in the codebase.
  */
-export function assetAuthParam(): Record<string, string> {
-  // Session mode: the browser attaches the session cookie to <img> requests on
-  // its own, so no query-string credential — which also removes the token from
-  // the DOM entirely, the exposure that forced cookies in the first place.
-  if (authEnabled()) return {};
-  const token = deviceDirectusToken() || PUBLIC_DIRECTUS_TOKEN;
-  return token ? { access_token: token } : {};
-}

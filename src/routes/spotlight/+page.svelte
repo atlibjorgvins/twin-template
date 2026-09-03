@@ -13,7 +13,23 @@
   import { spotlightDismiss, spotlightOpen, onSpotlightShown } from '$lib/desktop';
   import Icon from '$lib/Icon.svelte';
 
-  type Hit = { kind: 'person' | 'org'; id: number | string; title: string; sub: string };
+  type Hit =
+    | { kind: 'person' | 'org'; id: number | string; title: string; sub: string }
+    | { kind: 'page'; id: string; title: string; sub: string };
+
+  // Jump-to actions — the app's fixed destinations, filtered by the query so
+  // "set" surfaces Settings. Kept short: spotlight is a launcher, not a menu.
+  const PAGES: { path: string; title: string; sub: string }[] = [
+    { path: '/', title: 'Today', sub: 'page' },
+    { path: '/people', title: 'People', sub: 'page' },
+    { path: '/orgs', title: 'Organizations', sub: 'page' },
+    { path: '/settings', title: 'Settings', sub: 'page' },
+    { path: '/settings/plugins', title: 'Plugins', sub: 'settings' },
+    { path: '/settings/storage', title: 'Storage', sub: 'settings' },
+    { path: '/settings/vaults', title: 'Vaults', sub: 'settings' },
+    { path: '/settings/appearance', title: 'Appearance', sub: 'settings' },
+    { path: '/tools', title: 'Tools', sub: 'page' }
+  ];
 
   let q = $state('');
   let hits = $state<Hit[]>([]);
@@ -39,7 +55,11 @@
       searchOrgs(term, 4).catch(() => [])
     ]);
     if (my !== seq) return; // a newer keystroke already superseded this query
+    const pages = PAGES.filter((p) => p.title.toLowerCase().includes(term.trim().toLowerCase()))
+      .slice(0, 3)
+      .map((p) => ({ kind: 'page' as const, id: p.path, title: p.title, sub: p.sub }));
     hits = [
+      ...pages,
       ...people.map(
         (p: { id: number | string; email?: string | null } & Record<string, unknown>) => ({
           kind: 'person' as const,
@@ -75,7 +95,9 @@
   }
 
   function pick(h: Hit) {
-    void spotlightOpen(h.kind === 'person' ? `/people/${h.id}` : `/orgs/${h.id}`);
+    void spotlightOpen(
+      h.kind === 'page' ? String(h.id) : h.kind === 'person' ? `/people/${h.id}` : `/orgs/${h.id}`
+    );
   }
 </script>
 
@@ -120,7 +142,7 @@
             class="flex h-7 w-7 shrink-0 items-center justify-center"
             style="border-radius: var(--radius-md); background: var(--bg-tertiary); color: var(--text-secondary);"
           >
-            <Icon name={h.kind === 'person' ? 'users' : 'building'} size={14} />
+            <Icon name={h.kind === 'person' ? 'users' : h.kind === 'org' ? 'building' : 'arrow-right'} size={14} />
           </span>
           <span class="min-w-0">
             <span class="block truncate font-medium" style="color: var(--text-primary);">{h.title}</span>
