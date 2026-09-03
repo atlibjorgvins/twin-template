@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="is">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hraðritun — Æfingar</title>
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <header class="page__head">
+      <h1 class="page__title">Hraðritun</h1>
+      <p class="page__sub">Æfðu þig að vélrita á íslensku</p>
+    </header>
+
+    <section class="levels" role="radiogroup" aria-label="Erfiðleikastig">
+      <button class="level-btn" role="radio" aria-checked="true" data-level="easy">
+        <span class="level-btn__num">1</span>
+        <span class="level-btn__name">Auðvelt</span>
+        <span class="level-btn__hint">Stutt orð</span>
+      </button>
+      <button class="level-btn" role="radio" aria-checked="false" data-level="medium">
+        <span class="level-btn__num">2</span>
+        <span class="level-btn__name">Miðlungs</span>
+        <span class="level-btn__hint">Setningar</span>
+      </button>
+      <button class="level-btn" role="radio" aria-checked="false" data-level="hard">
+        <span class="level-btn__num">3</span>
+        <span class="level-btn__name">Erfitt</span>
+        <span class="level-btn__hint">Málshættir</span>
+      </button>
+    </section>
+
+    <section class="stats" aria-label="Tölfræði">
+      <div class="stat">
+        <span class="stat__label">Orð / mín</span>
+        <span class="stat__value" id="wpm">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat__label">Nákvæmni</span>
+        <span class="stat__value" id="acc">100%</span>
+      </div>
+      <div class="stat">
+        <span class="stat__label">Tími</span>
+        <span class="stat__value" id="time">0s</span>
+      </div>
+    </section>
+
+    <section class="trainer">
+      <div class="text" id="text" aria-live="polite"></div>
+      <input
+        class="input typing-input"
+        id="input"
+        type="text"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        aria-label="Skrifaðu textann hér"
+        placeholder="Byrjaðu að skrifa…"
+      >
+      <div class="actions">
+        <button class="btn btn-secondary" id="next">Ný setning</button>
+        <button class="btn btn-accent" id="restart">Byrja aftur</button>
+      </div>
+    </section>
+
+    <section class="result" id="result" hidden>
+      <h2 class="result__title">Frábært!</h2>
+      <p class="result__sub">Þú náðir <strong id="r-wpm">0</strong> orðum á mínútu með <strong id="r-acc">100%</strong> nákvæmni.</p>
+      <button class="btn btn-accent" id="result-next">Næsta æfing</button>
+    </section>
+  </main>
+
+  <script src="trainer.js"></script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd agent: run the Meta metrics sync nightly at 05:00.
+
+  Install (once):
+    cp scripts/com.twin.meta-sync.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.twin.meta-sync.plist
+
+  Check / run now / remove:
+    launchctl list | grep com.twin.meta-sync
+    launchctl start com.twin.meta-sync
+    launchctl unload ~/Library/LaunchAgents/com.twin.meta-sync.plist
+
+  Logs land in /tmp/twin-meta-sync.log. If the Mac is asleep at 05:00,
+  launchd runs the job on the next wake. For always-on reliability,
+  run the same `node scripts/sync-meta-metrics.mjs` line from cron on
+  the NAS instead.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.twin.meta-sync</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>scripts/sync-meta-metrics.mjs</string>
+    <string>--days</string>
+    <string>30</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/atlibjorgvins/Projects/twin</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>5</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/tmp/twin-meta-sync.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/twin-meta-sync.log</string>
+</dict>
+</plist>

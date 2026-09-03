@@ -1,0 +1,14 @@
+{
+  "external": [
+    {
+      "id": "habits",
+      "repo": "https://github.com/atlibjorgvins/twin-plugin-habits",
+      "ref": "main"
+    },
+    {
+      "id": "games",
+      "repo": "https://github.com/atlibjorgvins/twin-plugin-games",
+      "ref": "main"
+    }
+  ]
+}

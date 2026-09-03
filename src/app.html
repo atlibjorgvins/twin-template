@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/logo/mark.svg" />
+    <link rel="alternate icon" href="%sveltekit.assets%/favicon.png" />
+    <link rel="apple-touch-icon" href="%sveltekit.assets%/logo/mark.svg" />
+    <link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- Helga: light by default; dark theme is opt-in via data-theme="dark". -->
+    <meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0A0A0A" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Hub" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>Hub</title>
+    <!-- Flash-free theme init. Runs before first paint so the user
+         never sees the default light theme flicker into dark. Mirrors
+         the logic in src/lib/theme.svelte.ts; keep them in sync. -->
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem('twin.theme') || 'auto';
+          var dark =
+            mode === 'dark' ||
+            (mode === 'auto' &&
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+          var scope = localStorage.getItem('twin.scope') || 'all';
+          if (scope === 'work' || scope === 'private')
+            document.documentElement.setAttribute('data-scope', scope);
+          // Accent preset — mirrors src/lib/profile.svelte.ts; keep in sync.
+          var accent = localStorage.getItem('twin.accent');
+          if (accent) document.documentElement.setAttribute('data-accent', accent);
+        } catch (e) {}
+      })();
+    </script>
+    %sveltekit.head%
+  </head>
+  <body class="bg-surface-page text-ink-900 font-sans antialiased">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
+</html>

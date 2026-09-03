@@ -1,0 +1,432 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ───────────────────────────────────────────────────────────────────────
+   Helga design system tokens. Dark is the default surface; setting
+   `data-theme="light"` on <html> flips the entire palette. Every component
+   reads through these variables — never hardcode hex outside this file.
+   ─────────────────────────────────────────────────────────────────────── */
+:root {
+  /* RGB channel triplets — let Tailwind use rgb(var(--x) / <alpha-value>)
+     so utilities like `bg-brand/10` keep working. Light is the default;
+     `data-theme="dark"` on <html> flips to the chartreuse-on-black palette. */
+  --bg-primary-rgb: 250 250 250;
+  --bg-secondary-rgb: 244 244 245;
+  --bg-tertiary-rgb: 228 228 231;
+  --text-primary-rgb: 9 9 11;
+  --text-secondary-rgb: 82 82 91;
+  --text-tertiary-rgb: 95 95 102;
+  --accent-electric-rgb: 44 140 153;
+  --accent-electric-hover-rgb: 35 112 121;
+  --accent-text-rgb: 255 255 255;
+  --border-subtle-rgb: 228 228 231;
+  --border-strong-rgb: 212 212 216;
+  --state-danger-rgb: 248 113 113;
+  --state-warning-rgb: 245 158 11;
+  --state-success-rgb: 34 197 94;
+
+  --bg-primary: rgb(var(--bg-primary-rgb));
+  --bg-secondary: rgb(var(--bg-secondary-rgb));
+  --bg-tertiary: rgb(var(--bg-tertiary-rgb));
+  --text-primary: rgb(var(--text-primary-rgb));
+  --text-secondary: rgb(var(--text-secondary-rgb));
+  --text-tertiary: rgb(var(--text-tertiary-rgb));
+  --accent-electric: rgb(var(--accent-electric-rgb));
+  --accent-electric-hover: rgb(var(--accent-electric-hover-rgb));
+  --accent-text: rgb(var(--accent-text-rgb));
+  --accent-alpha-10: rgb(var(--accent-electric-rgb) / 0.10);
+  --accent-alpha-30: rgb(var(--accent-electric-rgb) / 0.30);
+  --border-subtle: rgb(var(--border-subtle-rgb));
+  --border-strong: rgb(var(--border-strong-rgb));
+
+  /* Semantic state colors — used sparingly, never as decoration. */
+  --state-danger: rgb(var(--state-danger-rgb));
+  --state-warning: rgb(var(--state-warning-rgb));
+  --state-success: rgb(var(--state-success-rgb));
+
+  /* Typography */
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --text-xs:      clamp(0.75rem, 0.7vw + 0.6rem, 0.875rem);
+  --text-sm:      clamp(0.875rem, 0.8vw + 0.7rem, 1rem);
+  --text-base:    clamp(1rem, 1vw + 0.8rem, 1.125rem);
+  --text-lg:      clamp(1.25rem, 1.5vw + 1rem, 1.5rem);
+  --text-xl:      clamp(1.5rem, 2vw + 1.25rem, 2rem);
+  --text-2xl:     clamp(2rem, 3vw + 1.5rem, 2.5rem);
+  --text-3xl:     clamp(2.5rem, 4vw + 2rem, 3.5rem);
+  --text-display: clamp(3rem, 6vw + 2rem, 6rem);
+
+  /* ── Data-viz slots ──────────────────────────────────────────────────
+     Chart series colours are NOT the accent. The accent flips with the
+     Work/Private scope toggle and with the theme; a series colour must not,
+     or "orgs" would change hue when you switch modes and every chart the
+     user had learned would lie. These are fixed, mode-selected steps.
+
+     Validated as a categorical set against both Helga surfaces (light
+     #f4f4f5, dark #141414) — lightness band, chroma floor, CVD separation
+     (worst all-pairs ΔE 9.2 light / 9.4 dark) and normal-vision floor all
+     pass. In light mode viz-2/viz-3 sit just under 3:1 against the surface,
+     so charts using them carry visible direct labels + a table view (the
+     relief rule) — Figure.svelte provides both.
+
+     viz-neutral is the "no data / before" slot: deliberately a gray, so an
+     absence never reads as a category. */
+  --viz-1: #2a78d6;        /* blue   — primary series */
+  --viz-2: #eb6834;        /* orange — second series */
+  --viz-3: #1baf7a;        /* aqua   — third series */
+  --viz-neutral: #a1a1aa;  /* gray   — unrecorded / pre-baseline */
+  --viz-grid: var(--border-subtle);
+  --viz-axis: var(--border-strong);
+
+  /* Radius & motion */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-theme='dark'] {
+  --bg-primary-rgb: 10 10 10;
+  --bg-secondary-rgb: 20 20 20;
+  --bg-tertiary-rgb: 26 26 26;
+  --text-primary-rgb: 245 245 245;
+  --text-secondary-rgb: 163 163 163;
+  --text-tertiary-rgb: 139 139 139;
+  --accent-electric-rgb: 217 249 157;
+  --accent-electric-hover-rgb: 190 242 100;
+  --accent-text-rgb: 10 10 10;
+  --border-subtle-rgb: 38 38 38;
+  --border-strong-rgb: 64 64 64;
+
+  /* The same three hues, re-stepped for the dark surface — a selected dark
+     palette, not an automatic flip. All three clear 3:1 on #141414. */
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-neutral: #71717a;
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+   User-chosen accent. `data-accent` on <html> (picked in /welcome or
+   Settings → Appearance, persisted as twin.accent, applied flash-free in
+   app.html) swaps the base accent channel the same way the scope blocks
+   below do: mid tone + white text in light, pastel + dark text in dark.
+   No attribute = the Helga default (teal/chartreuse). These blocks sit
+   BEFORE the scope blocks on purpose — equal specificity, so Work/Private
+   scope colors still win by source order; the accent choice themes `all`.
+   The preset list mirrors src/lib/profileCore.ts (asserted by its test).
+   ─────────────────────────────────────────────────────────────────────── */
+:root[data-accent='ocean'] {
+  --accent-electric-rgb: 37 99 235;
+  --accent-electric-hover-rgb: 29 78 216;
+}
+:root[data-accent='forest'] {
+  --accent-electric-rgb: 5 150 105;
+  --accent-electric-hover-rgb: 4 120 87;
+}
+:root[data-accent='rose'] {
+  --accent-electric-rgb: 225 29 72;
+  --accent-electric-hover-rgb: 190 18 60;
+}
+:root[data-accent='amber'] {
+  --accent-electric-rgb: 217 119 6;
+  --accent-electric-hover-rgb: 180 83 9;
+}
+:root[data-accent='violet'] {
+  --accent-electric-rgb: 124 58 237;
+  --accent-electric-hover-rgb: 109 40 217;
+}
+:root[data-accent='slate'] {
+  --accent-electric-rgb: 71 85 105;
+  --accent-electric-hover-rgb: 51 65 85;
+}
+[data-theme='dark'][data-accent='ocean'] {
+  --accent-electric-rgb: 147 197 253;
+  --accent-electric-hover-rgb: 96 165 250;
+}
+[data-theme='dark'][data-accent='forest'] {
+  --accent-electric-rgb: 110 231 183;
+  --accent-electric-hover-rgb: 52 211 153;
+}
+[data-theme='dark'][data-accent='rose'] {
+  --accent-electric-rgb: 253 164 175;
+  --accent-electric-hover-rgb: 251 113 133;
+}
+[data-theme='dark'][data-accent='amber'] {
+  --accent-electric-rgb: 252 211 77;
+  --accent-electric-hover-rgb: 251 191 36;
+}
+[data-theme='dark'][data-accent='violet'] {
+  --accent-electric-rgb: 196 181 253;
+  --accent-electric-hover-rgb: 167 139 250;
+}
+[data-theme='dark'][data-accent='slate'] {
+  --accent-electric-rgb: 203 213 225;
+  --accent-electric-hover-rgb: 148 163 184;
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+   Scope-themed accent. `data-scope` on <html> (set from the Work/Private
+   toggle, mirrored flash-free in app.html) recolors the single accent
+   channel — so every `--accent-electric` / `bg-brand` surface follows the
+   mode automatically. `all` keeps the default teal/chartreuse.
+   Light-theme slots want white text on a mid accent; dark-theme slots want
+   dark text on a light pastel — matching how the base palette already works.
+   Keep the dark blocks *after* the light ones so equal-specificity dark
+   overrides win by source order.
+   ─────────────────────────────────────────────────────────────────────── */
+:root[data-scope='private'] {          /* pastel orange — personal mode */
+  --accent-electric-rgb: 234 88 12;
+  --accent-electric-hover-rgb: 194 65 12;
+}
+:root[data-scope='work'] {             /* purple — work mode */
+  --accent-electric-rgb: 147 51 234;
+  --accent-electric-hover-rgb: 126 34 206;
+}
+[data-theme='dark'][data-scope='private'] {
+  --accent-electric-rgb: 253 186 116;
+  --accent-electric-hover-rgb: 251 146 60;
+}
+[data-theme='dark'][data-scope='work'] {
+  --accent-electric-rgb: 216 180 254;
+  --accent-electric-hover-rgb: 192 132 252;
+}
+
+@layer base {
+  html {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Stop double-tap zoom while preserving pinch — feels native. */
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    max-width: 100%;
+    overflow-x: clip;
+    overscroll-behavior-y: none;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+  h1 { font-weight: 700; }
+  h2, h3 { font-weight: 600; }
+
+  input, textarea, select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+  /* iOS Safari zooms text fields when their font-size is below 16px.
+     Force a 16px floor on mobile — `!important` so it beats Tailwind
+     text-sm/text-xs utilities (utilities outrank @layer base otherwise,
+     which is why compact inputs like the note editor still zoomed).
+     Desktop keeps whatever size the utility/.input class sets. */
+  @media (max-width: 767px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Brand-accent focus ring, visible on both light and dark surfaces. */
+  :focus-visible {
+    outline: 2px solid var(--accent-electric);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent-alpha-30);
+    color: var(--text-primary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Card: tokenized surface + subtle 1px border. No drop shadow — borders
+     are the structure in Helga. */
+  .card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+  }
+  .card-header {
+    @apply flex items-center justify-between px-4 pt-4 pb-2;
+    color: var(--text-secondary);
+  }
+  .card-title {
+    @apply flex items-center gap-2 text-sm font-medium;
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  .muted-label {
+    @apply inline-flex items-center text-xs font-medium uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    font-family: var(--font-display);
+  }
+  .tag {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+  }
+
+  .input {
+    @apply w-full px-3 py-2.5 text-base md:text-sm;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    min-height: 2.75rem;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .input::placeholder { color: var(--text-tertiary); }
+  .input:focus {
+    border-color: var(--accent-electric);
+    box-shadow: 0 0 0 3px var(--accent-alpha-30);
+    outline: none;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium;
+    background: var(--accent-electric);
+    color: var(--accent-text);
+    border-radius: var(--radius-md);
+    min-height: 2.75rem;
+    transition: background var(--transition-fast), transform var(--transition-fast);
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-electric-hover); }
+  .btn-primary:active:not(:disabled) { transform: translateY(1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium;
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    min-height: 2.75rem;
+    transition: background var(--transition-fast), color var(--transition-fast);
+  }
+  .btn-ghost:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  /* Pill-shaped radio chip — used for filter rows (e.g. Activity tab on
+     /people/[id]). Pair with `class:is-selected` to flip to the accent
+     state. Behaves like a segmented radio: keyboard-focusable, single
+     line, slight letter-spacing for the Helga display font. */
+  .chip-radio {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium font-display;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    letter-spacing: 0.04em;
+    transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  }
+  .chip-radio:hover { color: var(--text-primary); }
+  .chip-radio.is-selected {
+    background: var(--accent-electric);
+    color: var(--accent-text);
+    border-color: var(--accent-electric);
+  }
+
+  .nav-icon {
+    @apply flex h-10 w-10 items-center justify-center;
+    border-radius: var(--radius-md);
+    color: var(--text-tertiary);
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+  .nav-icon:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+  .nav-icon-active {
+    background: var(--accent-electric);
+    color: var(--accent-text);
+  }
+  .nav-icon-active:hover {
+    background: var(--accent-electric-hover);
+    color: var(--accent-text);
+  }
+
+  /* Wide-sidebar variant of .nav-icon: a full-width labeled row. The label
+     never wraps mid-transition — the aside clips overflow instead. */
+  .nav-row {
+    @apply w-full justify-start gap-3 px-3;
+  }
+  .nav-label {
+    @apply text-sm font-medium;
+    white-space: nowrap;
+  }
+  /* The expand/collapse chevron: quiet until hovered. */
+  .sidebar-toggle {
+    opacity: 0.45;
+    transition: opacity var(--transition-fast), color var(--transition-fast),
+      background var(--transition-fast);
+  }
+  .sidebar-toggle:hover {
+    opacity: 1;
+  }
+  /* The brand wordmark is fixed navy+teal; on the dark surface it renders
+     mono-white (no dark colorway exists in the brand set yet). */
+  [data-theme='dark'] .sidebar-wordmark {
+    filter: brightness(0) invert(1);
+  }
+
+  /* Hero display headline — used on the Today page. */
+  .hero-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-display);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    color: var(--text-primary);
+  }
+  .hero-eyebrow {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: var(--text-xs);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+}
+
+@layer utilities {
+  /* Safe-area helpers for iPhone notch + home-indicator. */
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pl-safe { padding-left: env(safe-area-inset-left); }
+  .pr-safe { padding-right: env(safe-area-inset-right); }
+  .pb-safe-plus-2 { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+  .pt-safe-plus-2 { padding-top: calc(env(safe-area-inset-top) + 0.5rem); }
+  .scroll-momentum { -webkit-overflow-scrolling: touch; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  .font-display { font-family: var(--font-display); }
+}

@@ -1,0 +1,29 @@
+# Docker Compose for the twin PWA running on the NAS.
+#
+# Uses a pre-built `./html` directory as a read-only bind-mount, so
+# deploying a new build is a one-step rsync — no image rebuild, no
+# container restart, no PUBLIC_* build-args to thread through.
+#
+# Initial setup on the NAS (first time only):
+#   git clone <this repo> /srv/twin
+#   mkdir -p /srv/twin/html
+#   cd /srv/twin && docker compose up -d
+#
+# Subsequent deploys from the dev machine:
+#   NAS_HOST=nas NAS_PATH=/srv/twin/html bash scripts/deploy.sh
+#
+# Override the host port with `HOST_PORT=…` if 8080 is taken.
+
+services:
+  twin:
+    image: nginx:alpine
+    container_name: twin
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8080}:80"
+    volumes:
+      # The actual static bundle. rsync'd from the dev machine.
+      - ./html:/usr/share/nginx/html:ro
+      # SPA fallback + caching headers — kept in repo so changes
+      # version-control alongside the app.
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro

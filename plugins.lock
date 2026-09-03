@@ -1,0 +1,14 @@
+{
+  "plugins": {
+    "habits": {
+      "repo": "https://github.com/atlibjorgvins/twin-plugin-habits",
+      "ref": "main",
+      "resolved": "ae3a2eec7bf313b1aee5eb79f656d3308af92c27"
+    },
+    "games": {
+      "repo": "https://github.com/atlibjorgvins/twin-plugin-games",
+      "ref": "main",
+      "resolved": "42c93deaf502f6f1d0c9acb8726d00a843a1ab1c"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+# The Twin desktop shell — a Tauri v2 wrapper around the static SPA in
+# ../build, built with PUBLIC_DATA_BACKEND=local (see ../.env.desktop): every
+# row lives in the app WebView's IndexedDB, no server anywhere.
+# `npm run dmg` builds the installer.
+[package]
+name = "twin-desktop"
+version = "0.1.0"
+description = "Twin — a personal contact system"
+edition = "2021"
+
+[lib]
+name = "twin_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-global-shortcut = "2"
+
+[profile.release]
+# Smaller binary: the shell does nothing but host the WebView.
+strip = true
+lto = true
+codegen-units = 1

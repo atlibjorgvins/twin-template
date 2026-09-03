@@ -1,0 +1,78 @@
+# The gate from AGENTS.md §5, run on every PR.
+#
+# It replaces the old build.yml, which pushed a Docker image to GHCR. That
+# workflow could not work in this repo: it was written when twin lived in a
+# `twin/` subdirectory of the 2ndbrain monorepo, and both its `paths:` filter
+# and its `context: ./twin` still pointed there. Nothing consumed the image
+# either — the NAS bind-mounts the files `scripts/deploy.sh` pushes over ssh and
+# has no registry credential (see the twin service in the 2ndbrain compose).
+#
+# Dropping it also removes the only place real PUBLIC_* secrets were handed to
+# CI. A build check needs the keys to EXIST, not to be true, so this workflow
+# writes dummy values and takes no secrets at all.
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # --experimental-strip-types needs >= 22.6. On an older node the
+          # failure is `node: bad option`, which reads like a broken test.
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Vite resolves $env/static/public at build time, so the keys have to be
+      # present or the build fails on `"PUBLIC_DIRECTUS_URL" is not exported`.
+      # Values are deliberately fake: nothing here talks to a real Directus.
+      - name: Write a dummy env
+        run: |
+          cat > .env <<'EOF'
+          PUBLIC_DIRECTUS_URL=http://localhost:8055
+          PUBLIC_DIRECTUS_TOKEN=ci-build-only
+          PUBLIC_OCR_URL=
+          EOF
+          # Every PUBLIC_* key .env sets must be set here too, or deploy.sh's
+          # preflight refuses the build. That refusal is the point of the
+          # KLAK step below, so keep these two lists in step deliberately.
+          cat > .env.klak <<'EOF'
+          PUBLIC_DIRECTUS_URL=/api
+          PUBLIC_DIRECTUS_TOKEN=ci-build-only
+          PUBLIC_INSTANCE=klak
+          PUBLIC_INSTANCE_LABEL=KLAK
+          PUBLIC_SCOPE_LOCK=work
+          PUBLIC_DISABLED_FEATURES=habits,food,finances,receipts,family,games,ai-vault
+          PUBLIC_OCR_URL=
+          EOF
+
+      - name: Tests
+        run: node --test --experimental-strip-types "src/**/*.test.ts"
+
+      - name: Build
+        run: npm run build
+
+      # The second instance, through the real deploy path. Exercises the
+      # env-bleed preflight and the post-build check that the bundle carries
+      # the URL it was meant to be built against — which also catches a stale
+      # build/ directory. Nothing is deployed: --build-only stops before ssh.
+      - name: Build — KLAK instance
+        run: bash scripts/deploy.sh --target klak --build-only
+
+      # Not a gate: `main` carries a standing backlog of svelte-check errors
+      # (~160, most in directus.ts where non-schema collections need `as
+      # never`). Run it so the number is visible and a jump is noticeable, but
+      # don't fail on it — a PR answers for the files it touches, not the
+      # backlog. Failing here would mean no PR could ever be green.
+      - name: svelte-check (informational)
+        continue-on-error: true
+        run: npm run check

@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700;900&display=swap');
+
+:root {
+  /* Colors */
+  --bg-primary: #0A0A0A;
+  --bg-secondary: #141414;
+  --bg-tertiary: #1A1A1A;
+  --text-primary: #F5F5F5;
+  --text-secondary: #A3A3A3;
+  --text-tertiary: #8B8B8B;
+  --accent-electric: #D9F99D; /* Chartreuse */
+  --accent-electric-hover: #BEF264;
+  --accent-text: #0A0A0A;
+  --accent-alpha-10: rgba(217, 249, 157, 0.1);
+  --accent-alpha-30: rgba(217, 249, 157, 0.3);
+  --border-subtle: #262626;
+  --border-strong: #404040;
+
+  /* Typography */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  
+  /* Fluid Type Scale */
+  --text-xs: clamp(0.75rem, 0.7vw + 0.6rem, 0.875rem);
+  --text-sm: clamp(0.875rem, 0.8vw + 0.7rem, 1rem);
+  --text-base: clamp(1rem, 1vw + 0.8rem, 1.125rem);
+  --text-lg: clamp(1.25rem, 1.5vw + 1rem, 1.5rem);
+  --text-xl: clamp(1.5rem, 2vw + 1.25rem, 2rem);
+  --text-2xl: clamp(2rem, 3vw + 1.5rem, 2.5rem);
+  --text-3xl: clamp(2.5rem, 4vw + 2rem, 3.5rem);
+  --text-display: clamp(3rem, 6vw + 2rem, 6rem);
+  --text-massive: clamp(4rem, 10vw + 2rem, 10rem);
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 2.5rem;
+  --space-8: 4rem;
+  --space-12: 6rem;
+  --space-16: 8rem;
+  --space-section: min(15vh, 10rem);
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* Motion */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-bounce: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Buttons: touch targets & fluid padding (rem + vi, not % — % padding is tied to box width) */
+  --control-target-comfort: 2.75rem; /* ~44px at 16px root — common mobile comfort target */
+  --control-target-min: 1.5rem; /* ~24px — WCAG 2.2 minimum target size where spacing allows */
+  --btn-pad-y: clamp(var(--space-2), 0.35rem + 0.55vi, var(--space-3));
+  --btn-pad-x: clamp(var(--space-3), 0.5rem + 1.1vi, var(--space-6));
+
+  /* Icons: rem-based steps (root-relative); pair with .icon--inline (1em) for text-locked size */
+  --icon-size-xs: 0.75rem;
+  --icon-size-sm: 1rem;
+  --icon-size-md: 1.25rem;
+  --icon-size-lg: 1.5rem;
+
+  /* Avatars: paired with --icon-size-* for consistent sizing across UI surfaces */
+  --avatar-size-xs: 1.5rem;
+  --avatar-size-sm: 2rem;
+  --avatar-size-md: 2.5rem;
+  --avatar-size-lg: 3.5rem;
+  --avatar-size-xl: 5rem;
+  --avatar-size-2xl: 8rem;
+  --presence-online: #22C55E;
+  --presence-away: #F59E0B;
+  --presence-busy: #EF4444;
+  --presence-offline: var(--text-tertiary);
+
+  /* Images & media: modern ratio and viewport units; avoid padding-bottom ratio hacks */
+  --media-aspect-square: 1 / 1;
+  --media-aspect-portrait: 3 / 4;
+  --media-aspect-landscape: 4 / 3;
+  --media-aspect-wide: 16 / 9;
+  --media-aspect-cinema: 21 / 9;
+  --media-radius-sm: var(--radius-md);
+  --media-radius-md: var(--radius-lg);
+  --media-radius-lg: 20px;
+  --scrim-bottom: linear-gradient(to top, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.4) 35%, rgba(0, 0, 0, 0) 70%);
+  --scrim-top: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+  --scrim-radial: radial-gradient(ellipse at bottom, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0) 70%);
+  --media-on-image: #FFFFFF;
+  --media-on-badge: #0A0A0A;
+  --hero-block-min: clamp(20rem, 60dvh, 40rem);
+}
+
+/* Light Mode Variables */
+[data-theme="light"] {
+  --bg-primary: #FAFAFA;
+  --bg-secondary: #F4F4F5;
+  --bg-tertiary: #E4E4E7;
+  --text-primary: #09090B;
+  --text-secondary: #52525B;

@@ -1,0 +1,32 @@
+node_modules
+.svelte-kit
+build
+.DS_Store
+
+# Per-instance env files — .env (personal), .env.klak, and anything else you
+# stand up. Real values and tokens; the committed .env*.example files are the
+# templates. The negation has to come last or the glob above swallows them.
+.env
+.env.local
+.env.*
+!.env.example
+!.env.*.example
+# The desktop build's env is configuration, not secrets — see the file header.
+!.env.desktop
+
+# Local OCR venvs (Phase 0 gate + the ONNX engine comparison). Several
+# hundred MB each — and this working tree is shared with other sessions,
+# so an untracked venv is one broad `git add -A` away from a huge commit.
+.venv-ocr/
+.venv-onnx/
+
+# Raw OCR gate fixtures — real receipts (card last-4, kennitölur, amounts)
+ocr-fixtures/
+
+# External plugins — materialised from GitHub by scripts/fetch-plugins.sh
+# (declared in plugins.json). GitHub is their source of truth, not this repo.
+src/lib/plugins/habits/
+src/lib/plugins/games/
+
+# External plugin route pages (materialised from GitHub by fetch-plugins.sh)
+src/routes/tools/habits/
