@@ -168,6 +168,22 @@ export async function searchOrgs(
   }
 }
 
+/** Organization search across the OTHER readable vaults — the unified "All
+ *  vaults" listing. Scalar columns only (no tag junction), same reason as
+ *  searchPeopleForeign: cross-vault ids would collide. */
+export async function searchOrgsForeign(
+  q: string,
+  limit = 25,
+  opts: OrgSearchOpts = {}
+): Promise<Array<Organization & { __vault: { id: string; name: string } }>> {
+  const query = q.trim();
+  const and = await buildOrgSearchFilter(q, [], { ...opts, searchTags: false });
+  const sort =
+    opts.sort && opts.sort.length ? opts.sort : query ? ['name'] : ['-date_created', '-id'];
+  const { listForeign } = await import('$lib/data/repo/crossVault');
+  return listForeign<Organization>('organization', { where: andToWhere(and), limit, sort });
+}
+
 /** Return the distinct set of non-empty industry values — for filter dropdowns. */
 export async function listOrgIndustries(limit = 200): Promise<string[]> {
   const rows = await repo.list<{ industry?: string | null }>('organization', {

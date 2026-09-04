@@ -30,8 +30,20 @@
   import { scope, scopeWhere } from '$lib/scope';
   import type { Filter } from '$lib/data/repo';
   import VaultPicker from '$lib/VaultPicker.svelte';
-  import { createInVault, canCreateInto } from '$lib/data/repo/crossVault';
+  import VaultBadge from '$lib/VaultBadge.svelte';
+  import { createInVault, canCreateInto, unifiedEnabled } from '$lib/data/repo/crossVault';
   import { activeVault, vaultForScope, vaults } from '$lib/data/repo/vaults';
+  import { switchVault } from '$lib/vaultSwitch';
+  import { searchPeopleForeign } from '$lib/data/people';
+
+  // A foreign row (unified "All vaults" view) carries __vault; a local row
+  // does not. Keys must be vault-scoped — two vaults can each hold Person 1.
+  type Row = Person & { __vault?: { id: string; name: string } };
+  const rowKey = (p: Row) => `${p.__vault?.id ?? 'me'}:${p.id}`;
+  const isForeign = (p: Row): p is Row & { __vault: { id: string; name: string } } => !!p.__vault;
+  function openForeign(p: Row & { __vault: { id: string; name: string } }) {
+    switchVault(p.__vault.id, p.__vault.name, `/people/${p.id}`);
+  }
   import { goto } from '$app/navigation';
   import Icon from '$lib/Icon.svelte';
   import Avatar from '$lib/Avatar.svelte';
@@ -158,14 +170,15 @@
       removeTag(selTagIds[selTagIds.length - 1]);
     }
   }
-  let results: Person[] = $state([]);
+  let results: Row[] = $state([]);
   let total = $state<number | null>(null);
   let rolesByPerson = $state<Map<number, Role[]>>(new Map());
   let loading = $state(false);
   let error = $state('');
   const PAGE_SIZE = 100;
 
-  function primaryRole(p: Person): Role | null {
+  function primaryRole(p: Row): Role | null {
+    if (p.__vault) return null; // foreign rows aren't role-decorated
     const arr = rolesByPerson.get(p.id);
     return arr && arr.length ? arr[0] : null;
   }
@@ -213,11 +226,24 @@
           searchPeople(query, PAGE_SIZE, extra, { includeArchived: archived, sort: listSort }),
           countPeople(query, extra, { includeArchived: archived })
         ]);
-        results = rows;
-        total = n;
-        // Decorate with current roles (non-blocking but awaited so rows render complete).
+        // Unified "All vaults" (the 1Password model): in All mode, fold in
+        // every other readable vault's people, each badged with its vault.
+        // Work/Private already narrow to a single vault, so no merge there.
+        let foreign: Row[] = [];
+        if (s === 'all' && unifiedEnabled()) {
+          try {
+            foreign = await searchPeopleForeign(query, PAGE_SIZE, {
+              includeArchived: archived,
+              sort: listSort
+            });
+          } catch { foreign = []; }
+        }
+        results = [...rows, ...foreign];
+        total = n + foreign.length;
+        // Roles decorate LOCAL rows only — getCurrentRolesFor hits the active
+        // vault, and a foreign row's id means something else there.
         try {
-          rolesByPerson = await getCurrentRolesFor(results.map((p) => p.id));
+          rolesByPerson = await getCurrentRolesFor(rows.map((p) => p.id));
         } catch { rolesByPerson = new Map(); }
       } catch (err) {
         error = err instanceof Error ? err.message : String(err);
@@ -709,7 +735,7 @@
         <span class="flex items-center gap-1"><Icon name="tag" size={14} /> Scope</span>
       </div>
       <ul class="divide-y divide-surface-divider">
-        {#each results as person (person.id)}
+        {#each results as person (rowKey(person))}
           {@const pills = scopePills(person.scope)}
           {@const pr = primaryRole(person)}
           {@const po = orgOf(pr)}
@@ -723,7 +749,8 @@
                  cleanly so the rest of the row markup stays shared. -->
             <svelte:element
               this={selectMode ? 'div' : 'a'}
-              href={selectMode ? undefined : `/people/${person.id}`}
+              href={selectMode || isForeign(person) ? undefined : `/people/${person.id}`}
+              onclickcapture={isForeign(person) && !selectMode ? ((e: MouseEvent) => { e.preventDefault(); openForeign(person as Row & { __vault: { id: string; name: string } }); }) : undefined}
               role={selectMode ? 'button' : undefined}
               tabindex={selectMode ? 0 : undefined}
               class="flex min-h-[60px] items-center gap-3 px-4 py-3 text-sm sm:grid sm:py-2.5 {selectMode ? 'sm:grid-cols-[auto_1.6fr_1.4fr_1fr_auto] cursor-pointer' : 'sm:grid-cols-[1.6fr_1.4fr_1fr_auto]'}"
@@ -745,6 +772,7 @@
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-1.5">
                     <span class="truncate text-base font-medium text-ink-900 sm:text-sm">{personName(person)}</span>
+                    {#if isForeign(person)}<VaultBadge name={person.__vault.name} />{/if}
                     {#if person.status === 'draft'}<TagPill tone="sales">Draft</TagPill>{/if}
                   </div>
                   <!-- Combined secondary line on mobile: role · org · phone -->
@@ -818,7 +846,7 @@
     </div>
   {:else}
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-      {#each results as person (person.id)}
+      {#each results as person (rowKey(person))}
         {@const pills = scopePills(person.scope)}
         {@const pr = primaryRole(person)}
         {@const po = orgOf(pr)}
@@ -826,7 +854,8 @@
         <div class="flex flex-col">
         <svelte:element
           this={selectMode ? 'div' : 'a'}
-          href={selectMode ? undefined : `/people/${person.id}`}
+          href={selectMode || isForeign(person) ? undefined : `/people/${person.id}`}
+              onclickcapture={isForeign(person) && !selectMode ? ((e: MouseEvent) => { e.preventDefault(); openForeign(person as Row & { __vault: { id: string; name: string } }); }) : undefined}
           role={selectMode ? 'button' : undefined}
           tabindex={selectMode ? 0 : undefined}
           class="card relative p-4 flex flex-col items-center text-center hover:shadow-card transition {person.status === 'archived' ? 'opacity-60' : ''} {selectMode ? 'cursor-pointer' : ''} {selectMode && selected.has(person.id) ? 'ring-2 ring-brand bg-brand/[0.04]' : ''}"
@@ -844,6 +873,7 @@
           {/if}
           <Avatar name={personName(person)} src={assetUrl(person.person_picture, { width: 120, height: 120, fit: 'cover' })} size={72} lazy />
           <div class="mt-3 truncate w-full font-medium text-ink-900">{personName(person)}</div>
+          {#if isForeign(person)}<div class="mt-1"><VaultBadge name={person.__vault.name} /></div>{/if}
           {#if po}
             <div class="mt-0.5 w-full truncate text-xs text-ink-500">
               {pr?.role ? pr.role + ' · ' : ''}{po.name}

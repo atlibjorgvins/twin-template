@@ -10,6 +10,7 @@
   import { vaults, activeVault, addVault, removeVault, bindVaultScope, type Vault } from '$lib/data/repo/vaults';
   import { switchVault } from '$lib/vaultSwitch';
   import { checkSupabaseConn, connCheckMessage, normalizeSupabaseUrl, normalizeSupabaseKey } from '$lib/data/repo/validate';
+  import { unifiedEnabled, setUnifiedEnabled, foreignReadableVaults } from '$lib/data/repo/crossVault';
   import { activeBackend, auth, type BackendId } from '$lib/data/repo';
 
   // Managed vault: end the member session. The guard then routes to
@@ -37,6 +38,8 @@
 
   let all = $state(vaults());
   const active = activeVault();
+  const hasForeign = foreignReadableVaults().length > 0;
+  let unified = $state(unifiedEnabled());
 
   function open(id: string) {
     if (id === active.id) return;
@@ -123,6 +126,19 @@
     title="Vaults"
     subtitle="Every vault is its own world of people and organizations — your personal one, a team's server, a project's Supabase. Switch any time; nothing mixes."
   />
+
+  <!-- Unified browsing (the 1Password model) ────────────────────────── -->
+  {#if hasForeign}
+    <label class="flex items-start gap-3 rounded-[14px] border border-surface-border bg-surface-card p-4">
+      <input type="checkbox" class="mt-0.5 h-4 w-4" bind:checked={unified} onchange={() => setUnifiedEnabled(unified)} />
+      <span class="text-sm text-ink-700">
+        <span class="font-medium text-ink-900">See all vaults together</span> — in the
+        <span class="font-medium">All</span> view, People and Organizations show every vault's
+        records at once, each tagged with its vault. Opening one from another vault switches into
+        it. Turn this off to see only the vault you're in.
+      </span>
+    </label>
+  {/if}
 
   <!-- The vaults on this device ─────────────────────────────────────── -->
   <ul class="divide-y divide-surface-divider rounded-[14px] border border-surface-border bg-surface-card">

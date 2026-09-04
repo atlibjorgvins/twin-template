@@ -36,11 +36,66 @@ export function creatableVaults(): Vault[] {
   return vaults().filter((v) => canCreateInto(v));
 }
 
+/** The OTHER vaults twin can read right now (local by database name; supabase
+ *  via a fresh client that restores any persisted member session). */
+export function foreignReadableVaults(): Vault[] {
+  const active = activeVault().id;
+  return vaults().filter((v) => v.id !== active && (v.backend === 'local' || v.backend === 'supabase'));
+}
+
+// ── Unified "All vaults" browsing (the 1Password model) ────────────────
+// In All mode the People/Org lists show every vault's rows together, each
+// foreign row wearing its vault's badge; opening one switches into its vault.
+// Per-device and defaulted ON — the scope toggle already covers the moments
+// you want to see only one world.
+const UNIFIED_KEY = 'twin.vaults.unified';
+
+export function unifiedEnabled(): boolean {
+  try {
+    return localStorage.getItem(UNIFIED_KEY) !== '0' && foreignReadableVaults().length > 0;
+  } catch {
+    return false;
+  }
+}
+export function setUnifiedEnabled(on: boolean): void {
+  try {
+    localStorage.setItem(UNIFIED_KEY, on ? '1' : '0');
+  } catch {
+    /* private mode */
+  }
+}
+
+export interface VaultTag {
+  id: string;
+  name: string;
+}
+
+/** List a collection across every OTHER readable vault, each row tagged with
+ *  its vault. Per-vault failures contribute nothing rather than breaking the
+ *  whole view — a signed-out managed vault is a normal state, not an error. */
+export async function listForeign<T>(
+  collection: string,
+  query: Parameters<Repository['list']>[1]
+): Promise<Array<T & { __vault: VaultTag }>> {
+  const chunks = await Promise.all(
+    foreignReadableVaults().map(async (v) => {
+      try {
+        const rows = await (await adapterFor(v)).list<T>(collection, query);
+        return rows.map((r) => ({ ...r, __vault: { id: v.id, name: v.name } }));
+      } catch (e) {
+        console.warn(`[unified] ${v.name}: ${e instanceof Error ? e.message : e}`);
+        return [];
+      }
+    })
+  );
+  return chunks.flat();
+}
+
 // One throwaway adapter per foreign vault per page load — repeat saves to the
 // same destination shouldn't re-hydrate a local database every time.
-const cache = new Map<string, Promise<Pick<Repository, 'create'>>>();
+const cache = new Map<string, Promise<Repository>>();
 
-function adapterFor(v: Vault): Promise<Pick<Repository, 'create'>> {
+function adapterFor(v: Vault): Promise<Repository> {
   let made = cache.get(v.id);
   if (!made) {
     made = (async () => {

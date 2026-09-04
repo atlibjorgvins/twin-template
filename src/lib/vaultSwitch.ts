@@ -10,17 +10,19 @@ import { setActiveVault } from '$lib/data/repo/vaults';
 
 const KEY = 'twin.vaultSwitch';
 
-/** Switch to another vault with the curtain transition. Stays on the current
- *  path — the destination's guards (managed sign-in, onboarding) still apply
- *  on the way in, exactly as before. */
-export function switchVault(id: string, name: string): void {
+/** Switch to another vault with the curtain transition. Defaults to the
+ *  current path; pass `path` to land somewhere specific (opening a foreign
+ *  row jumps straight to its detail page in the owning vault). The
+ *  destination's guards (managed sign-in, onboarding) still apply on the way
+ *  in, exactly as before. */
+export function switchVault(id: string, name: string, path?: string): void {
   try {
     sessionStorage.setItem(KEY, JSON.stringify({ name, y: scrollY }));
   } catch {
     /* private mode — plain reload, no curtain */
   }
   setActiveVault(id);
-  window.location.href = window.location.pathname;
+  window.location.href = path ?? window.location.pathname;
 }
 
 /** Called once from the root layout after boot: restore scroll, lift the

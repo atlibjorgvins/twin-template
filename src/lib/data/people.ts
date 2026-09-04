@@ -115,6 +115,37 @@ export async function searchPeople(
   }
 }
 
+/** Person search across the OTHER readable vaults — the unified "All vaults"
+ *  listing. Scalar columns only, on purpose: junction lookups (roles, tags)
+ *  resolve to vault-local ids that would collide across vaults, so foreign
+ *  rows come undecorated and get their full context on drill-in. */
+export async function searchPeopleForeign(
+  q: string,
+  limit = 25,
+  opts: PeopleSearchOpts = {}
+): Promise<Array<Person & { __vault: { id: string; name: string } }>> {
+  const query = q.trim();
+  const and: Filter[] = opts.includeArchived ? [] : [{ field: 'status', op: 'neq', value: 'archived' }];
+  if (query) {
+    and.push({
+      or: [
+        { field: 'full_name', op: 'icontains', value: query },
+        { field: 'first_name', op: 'icontains', value: query },
+        { field: 'last_name', op: 'icontains', value: query },
+        { field: 'nickname', op: 'icontains', value: query },
+        { field: 'email', op: 'icontains', value: query },
+        { field: 'phone', op: 'icontains', value: query }
+      ]
+    });
+  }
+  const { listForeign } = await import('$lib/data/repo/crossVault');
+  return listForeign<Person>('Person', {
+    where: andToWhere(and),
+    limit,
+    sort: opts.sort ?? (query ? ['full_name', 'first_name'] : ['-date_created', '-id'])
+  });
+}
+
 export async function createPerson(patch: Partial<Person>) {
   const data = { status: 'published', ...patch } as Record<string, unknown>;
   try {

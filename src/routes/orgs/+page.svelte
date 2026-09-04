@@ -25,8 +25,18 @@
   import ProjectFilterTree from '$lib/admin/ProjectFilterTree.svelte';
   import { scope, scopeWhere } from '$lib/scope';
   import VaultPicker from '$lib/VaultPicker.svelte';
-  import { createInVault, canCreateInto } from '$lib/data/repo/crossVault';
+  import { createInVault, canCreateInto, unifiedEnabled } from '$lib/data/repo/crossVault';
   import { activeVault, vaultForScope, vaults } from '$lib/data/repo/vaults';
+  import { switchVault } from '$lib/vaultSwitch';
+  import { searchOrgsForeign } from '$lib/data/orgs';
+  import VaultBadge from '$lib/VaultBadge.svelte';
+
+  type Row = Organization & { __vault?: { id: string; name: string } };
+  const rowKey = (o: Row) => `${o.__vault?.id ?? 'me'}:${o.id}`;
+  const isForeign = (o: Row): o is Row & { __vault: { id: string; name: string } } => !!o.__vault;
+  function openForeign(o: Row & { __vault: { id: string; name: string } }) {
+    switchVault(o.__vault.id, o.__vault.name, `/orgs/${o.id}`);
+  }
   import type { Filter } from '$lib/data/repo';
   import { goto } from '$app/navigation';
   import Icon from '$lib/Icon.svelte';
@@ -135,7 +145,7 @@
   let showInactive = $state(ls('twin.orgs.inactive') === '1');
   let sortKey = $state<SortKey>(((SORT_OPTIONS.find((o) => o.value === ls('twin.orgs.sort'))?.value) as SortKey) ?? 'updated');
 
-  let results: Organization[] = $state([]);
+  let results: Row[] = $state([]);
   let total = $state<number | null>(null);
   let loading = $state(false);
   let error = $state('');
@@ -216,8 +226,17 @@
           }),
           countOrgs(query, extra, { includeArchived: archived, includeInactive: inactive })
         ]);
-        results = rows;
-        total = n;
+        let foreign: Row[] = [];
+        if (s === 'all' && unifiedEnabled()) {
+          try {
+            foreign = await searchOrgsForeign(query, PAGE_SIZE, {
+              includeArchived: archived,
+              includeInactive: inactive
+            });
+          } catch { foreign = []; }
+        }
+        results = [...rows, ...foreign];
+        total = n + foreign.length;
       } catch (err) {
         error = err instanceof Error ? err.message : String(err);
       } finally {
@@ -658,12 +677,13 @@
         <span class="text-right">Updated</span>
       </div>
       <ul class="divide-y divide-surface-divider">
-        {#each results as org (org.id)}
+        {#each results as org (rowKey(org))}
           {@const pills = scopePills(org.scope)}
           <li class="hover:bg-surface-hover {org.status === 'archived' || org.is_active === false ? 'opacity-60' : ''} {selectMode && selected.has(org.id) ? 'bg-brand/[0.06]' : ''}">
             <svelte:element
               this={selectMode ? 'div' : 'a'}
-              href={selectMode ? undefined : `/orgs/${org.id}`}
+              href={selectMode || isForeign(org) ? undefined : `/orgs/${org.id}`}
+              onclickcapture={isForeign(org) && !selectMode ? ((e: MouseEvent) => { e.preventDefault(); openForeign(org as Row & { __vault: { id: string; name: string } }); }) : undefined}
               role={selectMode ? 'button' : undefined}
               tabindex={selectMode ? 0 : undefined}
               class="flex min-h-[60px] items-center gap-3 px-4 py-3 text-sm sm:grid sm:py-2.5 {selectMode ? 'sm:grid-cols-[auto_1.6fr_1fr_1fr_auto_auto] cursor-pointer' : 'sm:grid-cols-[1.6fr_1fr_1fr_auto_auto]'}"
@@ -684,7 +704,7 @@
               <div class="flex flex-1 items-center gap-3 min-w-0 sm:flex-initial">
                 <Avatar name={org.name ?? '?'} src={avatarSrc(org.logo, org.image_focal, 80)} position={org.image_focal ?? ''} lazy />
                 <div class="min-w-0 flex-1">
-                  <div class="truncate text-base font-medium text-ink-900 sm:text-sm">{org.name ?? '(no name)'}</div>
+                  <div class="flex items-center gap-1.5 min-w-0"><span class="truncate text-base font-medium text-ink-900 sm:text-sm">{org.name ?? '(no name)'}</span>{#if isForeign(org)}<VaultBadge name={org.__vault.name} />{/if}</div>
                   <!-- Mobile compound secondary line: industry · website · size · updated -->
                   <div class="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink-400 sm:hidden">
                     {#if industryLabel(org.industry)}<span class="truncate">{industryLabel(org.industry)}</span>{/if}
@@ -741,11 +761,12 @@
     </div>
   {:else}
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-      {#each results as org (org.id)}
+      {#each results as org (rowKey(org))}
         {@const pills = scopePills(org.scope)}
         <svelte:element
           this={selectMode ? 'div' : 'a'}
-          href={selectMode ? undefined : `/orgs/${org.id}`}
+          href={selectMode || isForeign(org) ? undefined : `/orgs/${org.id}`}
+              onclickcapture={isForeign(org) && !selectMode ? ((e: MouseEvent) => { e.preventDefault(); openForeign(org as Row & { __vault: { id: string; name: string } }); }) : undefined}
           role={selectMode ? 'button' : undefined}
           tabindex={selectMode ? 0 : undefined}
           class="card relative p-4 flex flex-col items-center text-center hover:shadow-card transition {org.status === 'archived' || org.is_active === false ? 'opacity-60' : ''} {selectMode ? 'cursor-pointer' : ''} {selectMode && selected.has(org.id) ? 'ring-2 ring-brand bg-brand/[0.04]' : ''}"
@@ -765,6 +786,7 @@
           {/if}
           <Avatar name={org.name ?? '?'} src={avatarSrc(org.logo, org.image_focal, 144)} position={org.image_focal ?? ''} size={72} lazy />
           <div class="mt-3 truncate w-full font-medium text-ink-900">{org.name ?? '(no name)'}</div>
+          {#if isForeign(org)}<div class="mt-1"><VaultBadge name={org.__vault.name} /></div>{/if}
           <div class="mt-0.5 truncate w-full text-xs text-ink-400">{industryLabel(org.industry) ?? '—'}</div>
           <div class="mt-2 inline-flex flex-wrap items-center justify-center gap-1">
             {#if org.status === 'archived'}
