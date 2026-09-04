@@ -2,31 +2,31 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parseVaults, migrateFlat, localDbName, localMediaDbName, PRIMARY_ID,
-  vaults, addVault, bindVaultScope, vaultForScope
+  vaults, addVault, setVaultWorld, vaultWorld, vaultInScope, defaultVaultForScope
 } from './vaults.ts';
 
-test('scope bindings are exclusive per side and unbindable', () => {
+test('vault worlds: default both, non-exclusive, drive scope membership', () => {
   // No localStorage in node: vaults() runs purely in memory, seeded with the
-  // migrated primary — good enough to exercise the binding rules.
+  // migrated primary — good enough to exercise the world rules.
   const primary = vaults()[0];
   const klak = addVault({ name: 'KLAK', kind: 'workspace', backend: 'supabase' });
   const side = addVault({ name: 'Side', kind: 'workspace', backend: 'local' });
 
-  bindVaultScope(klak.id, 'work');
-  bindVaultScope(primary.id, 'private');
-  assert.equal(vaultForScope('work')?.id, klak.id);
-  assert.equal(vaultForScope('private')?.id, primary.id);
+  // Unset → both, and 'both' is in every scope.
+  assert.equal(vaultWorld(primary), 'both');
+  assert.ok(vaultInScope(primary, 'work') && vaultInScope(primary, 'private') && vaultInScope(primary, 'all'));
 
-  // Re-binding 'work' to another vault must strip it from KLAK — a click on
-  // Work needs exactly one answer.
-  bindVaultScope(side.id, 'work');
-  assert.equal(vaultForScope('work')?.id, side.id);
-  assert.equal(vaults().find((v) => v.id === klak.id)?.boundScope, undefined);
+  setVaultWorld(klak.id, 'work');
+  setVaultWorld(side.id, 'work'); // non-exclusive: two work vaults coexist
+  const fresh = () => vaults().find((v) => v.id === klak.id)!;
+  assert.equal(vaultWorld(fresh()), 'work');
+  assert.ok(vaultInScope(fresh(), 'work'));
+  assert.ok(!vaultInScope(fresh(), 'private'), 'a work vault is not in the private scope');
+  assert.ok(vaultInScope(fresh(), 'all'), 'everything is in all');
 
-  // Unbind.
-  bindVaultScope(side.id, undefined);
-  assert.equal(vaultForScope('work'), null);
-  assert.equal(vaultForScope('private')?.id, primary.id, 'other side untouched');
+  // The create-default for a scope is the first vault flagged that world.
+  assert.equal(defaultVaultForScope('work')?.id, klak.id);
+  assert.equal(defaultVaultForScope('private'), null);
 });
 
 test('parseVaults drops garbage and keeps well-formed vaults', () => {

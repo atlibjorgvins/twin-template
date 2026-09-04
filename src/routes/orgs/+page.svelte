@@ -26,7 +26,7 @@
   import { scope, scopeWhere } from '$lib/scope';
   import VaultPicker from '$lib/VaultPicker.svelte';
   import { createInVault, canCreateInto, unifiedEnabled } from '$lib/data/repo/crossVault';
-  import { activeVault, vaultForScope, vaults } from '$lib/data/repo/vaults';
+  import { activeVault, defaultVaultForScope, vaults } from '$lib/data/repo/vaults';
   import { switchVault } from '$lib/vaultSwitch';
   import { searchOrgsForeign } from '$lib/data/orgs';
   import VaultBadge from '$lib/VaultBadge.svelte';
@@ -72,7 +72,7 @@
   let newVault = $state(activeVault().id);
   $effect(() => {
     const s = newScope;
-    const bound = s === 'work' || s === 'private' ? vaultForScope(s) : null;
+    const bound = s === 'work' || s === 'private' ? defaultVaultForScope(s) : null;
     newVault = bound && canCreateInto(bound) ? bound.id : activeVault().id;
   });
 
@@ -193,6 +193,8 @@
   const activeFilterCount = $derived(filterProjectIds.size);
 
   let timer: ReturnType<typeof setTimeout>;
+  // See people/+page.svelte: guards a scope-switch async race.
+  let loadGen = 0;
   $effect(() => {
     clearTimeout(timer);
     const query = q;
@@ -202,6 +204,7 @@
     const inactive = showInactive;
     const srt = activeSort.sort;
     const orgIds = filterOrgIds;
+    const gen = ++loadGen;
     timer = setTimeout(async () => {
       loading = true;
       error = '';
@@ -226,21 +229,25 @@
           }),
           countOrgs(query, extra, { includeArchived: archived, includeInactive: inactive })
         ]);
+        // Unified browsing: fold in every other readable vault whose world
+        // matches the scope (see people/+page.svelte). The toggle filters
+        // this merged list rather than switching vaults.
         let foreign: Row[] = [];
-        if (s === 'all' && unifiedEnabled()) {
+        if (unifiedEnabled()) {
           try {
-            foreign = await searchOrgsForeign(query, PAGE_SIZE, {
+            foreign = await searchOrgsForeign(query, PAGE_SIZE, s, {
               includeArchived: archived,
               includeInactive: inactive
             });
           } catch { foreign = []; }
         }
+        if (gen !== loadGen) return; // a newer load started — drop this result
         results = [...rows, ...foreign];
         total = n + foreign.length;
       } catch (err) {
-        error = err instanceof Error ? err.message : String(err);
+        if (gen === loadGen) error = err instanceof Error ? err.message : String(err);
       } finally {
-        loading = false;
+        if (gen === loadGen) loading = false;
       }
     }, 200);
   });

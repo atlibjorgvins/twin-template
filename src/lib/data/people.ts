@@ -115,35 +115,66 @@ export async function searchPeople(
   }
 }
 
-/** Person search across the OTHER readable vaults — the unified "All vaults"
- *  listing. Scalar columns only, on purpose: junction lookups (roles, tags)
- *  resolve to vault-local ids that would collide across vaults, so foreign
- *  rows come undecorated and get their full context on drill-in. */
+function peopleNameOr(query: string): Filter | null {
+  if (!query) return null;
+  return {
+    or: [
+      { field: 'full_name', op: 'icontains', value: query },
+      { field: 'first_name', op: 'icontains', value: query },
+      { field: 'last_name', op: 'icontains', value: query },
+      { field: 'nickname', op: 'icontains', value: query },
+      { field: 'email', op: 'icontains', value: query },
+      { field: 'phone', op: 'icontains', value: query }
+    ]
+  };
+}
+
+/** Person search across the OTHER readable vaults — the unified list. Scalar
+ *  columns only, on purpose: junction lookups (roles, tags) resolve to
+ *  vault-local ids that would collide across vaults, so foreign rows come
+ *  undecorated and get their full context on drill-in.
+ *
+ *  Scope shapes WHICH vaults and WHICH rows: a vault flagged for this world
+ *  contributes all its rows; a 'both' vault contributes only rows of this
+ *  scope (scopeWhere); the other world's vaults don't appear. */
 export async function searchPeopleForeign(
   q: string,
   limit = 25,
+  scope: 'all' | 'work' | 'private' = 'all',
   opts: PeopleSearchOpts = {}
 ): Promise<Array<Person & { __vault: { id: string; name: string } }>> {
   const query = q.trim();
-  const and: Filter[] = opts.includeArchived ? [] : [{ field: 'status', op: 'neq', value: 'archived' }];
-  if (query) {
-    and.push({
-      or: [
-        { field: 'full_name', op: 'icontains', value: query },
-        { field: 'first_name', op: 'icontains', value: query },
-        { field: 'last_name', op: 'icontains', value: query },
-        { field: 'nickname', op: 'icontains', value: query },
-        { field: 'email', op: 'icontains', value: query },
-        { field: 'phone', op: 'icontains', value: query }
-      ]
-    });
-  }
-  const { listForeign } = await import('$lib/data/repo/crossVault');
-  return listForeign<Person>('Person', {
-    where: andToWhere(and),
-    limit,
-    sort: opts.sort ?? (query ? ['full_name', 'first_name'] : ['-date_created', '-id'])
-  });
+  const [{ listForeign, foreignVaultsInScope }, { scopeWhere }, { vaultWorld }] = await Promise.all([
+    import('$lib/data/repo/crossVault'),
+    import('$lib/scope'),
+    import('$lib/data/repo/vaults')
+  ]);
+  const sort = opts.sort ?? (query ? ['full_name', 'first_name'] : ['-date_created', '-id']);
+  const base: Filter[] = opts.includeArchived ? [] : [{ field: 'status', op: 'neq', value: 'archived' }];
+  const nameOr = peopleNameOr(query);
+  if (nameOr) base.push(nameOr);
+
+  // Vaults flagged exactly this world show ALL rows; 'both' vaults are
+  // filtered to this scope's rows — so the flag ("this whole vault is work")
+  // and the per-row scope coexist.
+  const inScope = foreignVaultsInScope(scope);
+  const whole = inScope.filter((v) => scope !== 'all' && vaultWorld(v) === scope);
+  const mixed = inScope.filter((v) => !whole.includes(v));
+  const rowFilter = scope === 'all' ? null : scopeWhere(scope);
+
+  const [a, b] = await Promise.all([
+    whole.length
+      ? listForeign<Person>('Person', { where: andToWhere(base), limit, sort }, whole)
+      : Promise.resolve([]),
+    mixed.length
+      ? listForeign<Person>(
+          'Person',
+          { where: andToWhere(rowFilter ? [...base, rowFilter] : base), limit, sort },
+          mixed
+        )
+      : Promise.resolve([])
+  ]);
+  return [...a, ...b];
 }
 
 export async function createPerson(patch: Partial<Person>) {

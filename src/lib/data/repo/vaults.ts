@@ -42,11 +42,11 @@ export interface Vault {
    *  Settings → Vaults → Members. Unlocks in-app member administration on
    *  THIS device; never synced, never sent anywhere but the project itself. */
   adminKey?: string;
-  /** Bind this vault to one side of the Work/Private toggle. Clicking that
-   *  side then OPENS this vault (full reload), and new records tagged with
-   *  that scope default their destination here. At most one vault per side —
-   *  bindVaultScope() enforces it. */
-  boundScope?: 'work' | 'private';
+  /** Which world this vault belongs to. The Work/Private toggle FILTERS the
+   *  unified view to vaults of that world (it no longer switches vaults);
+   *  'both' (the default when unset) shows under either. Set per vault in
+   *  Settings → Vaults. */
+  world?: 'work' | 'private' | 'both';
 }
 
 const VAULTS_KEY = 'twin.vaults';
@@ -184,27 +184,32 @@ export function removeVault(id: string): boolean {
   return true;
 }
 
-/** The vault bound to one side of the Work/Private toggle, if any. */
-export function vaultForScope(s: 'work' | 'private'): Vault | null {
-  return vaults().find((v) => v.boundScope === s) ?? null;
+export type VaultWorld = 'work' | 'private' | 'both';
+
+/** A vault's world, defaulting to 'both' when unset. */
+export function vaultWorld(v: Vault): VaultWorld {
+  return v.world ?? 'both';
 }
 
-/** Bind a vault to a toggle side (or unbind with undefined). Exclusive per
- *  side: binding KLAK to 'work' unbinds whoever held 'work' before —
- *  "clicking Work" must have exactly one answer. */
-export function bindVaultScope(id: string, scope: 'work' | 'private' | undefined): void {
-  _vaults = vaults().map((v) => {
-    if (v.id === id) {
-      const { boundScope: _drop, ...rest } = v;
-      return scope ? { ...rest, boundScope: scope } : rest;
-    }
-    if (scope && v.boundScope === scope) {
-      const { boundScope: _drop, ...rest } = v;
-      return rest;
-    }
-    return v;
-  });
+/** Does this vault show under the given scope? 'all' shows every vault;
+ *  'work'/'private' show that world plus 'both' vaults. */
+export function vaultInScope(v: Vault, scope: 'all' | 'work' | 'private'): boolean {
+  if (scope === 'all') return true;
+  const w = vaultWorld(v);
+  return w === 'both' || w === scope;
+}
+
+/** Flag a vault's world (Settings → Vaults). Not exclusive — several vaults
+ *  can be 'work'. */
+export function setVaultWorld(id: string, world: VaultWorld): void {
+  _vaults = vaults().map((v) => (v.id === id ? { ...v, world } : v));
   persist();
+}
+
+/** The vault a new record of this scope should default to: the first vault
+ *  flagged for that world (a team vault for work), else the active one. */
+export function defaultVaultForScope(scope: 'work' | 'private'): Vault | null {
+  return vaults().find((v) => v.world === scope) ?? null;
 }
 
 /** Per-vault IndexedDB names. The primary vault keeps the LEGACY names so a

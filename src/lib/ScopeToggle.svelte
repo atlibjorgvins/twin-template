@@ -1,38 +1,17 @@
 <script lang="ts">
+  // The Work / Private / All switch. It sets the SCOPE only — it never
+  // switches vaults. The People/Org lists react: All merges every vault,
+  // Work/Private merge the vaults flagged for that world (Settings → Vaults)
+  // plus shared ones. So "Work" shows your work across every vault at once,
+  // rather than jumping you into one. To actually open a different vault, use
+  // the vault switcher in the sidebar or Settings → Vaults.
   import { scope, type Scope } from '$lib/scope';
-  import { vaultForScope, activeVault } from '$lib/data/repo/vaults';
-  import { switchVault } from '$lib/vaultSwitch';
 
   const opts: { value: Scope; label: string; title: string }[] = [
-    { value: 'all', label: 'All', title: 'Work + Private' },
-    { value: 'work', label: 'Work', title: 'Work contacts only' },
-    { value: 'private', label: 'Private', title: 'Private contacts only' }
+    { value: 'all', label: 'All', title: 'Everything, every vault' },
+    { value: 'work', label: 'Work', title: 'Work — across every work vault' },
+    { value: 'private', label: 'Private', title: 'Private — across every personal vault' }
   ];
-
-  // A side of the toggle can be BOUND to a vault (Settings → Vaults): clicking
-  // Work then doesn't just filter — it OPENS the work vault. The scope value
-  // is written first so the destination loads already filtered, and the swap
-  // is a full reload because the repo is a per-load singleton. 'All' never
-  // switches vaults: it means "everything in the vault I'm looking at".
-  function pick(v: Scope) {
-    $scope = v;
-    if (v === 'work' || v === 'private') {
-      const bound = vaultForScope(v);
-      if (bound && bound.id !== activeVault().id) {
-        switchVault(bound.id, bound.name);
-        return;
-      }
-    }
-  }
-
-  // Show where a click will take you: the bound vault's name in the tooltip.
-  function titleFor(opt: { value: Scope; title: string }): string {
-    if (opt.value === 'work' || opt.value === 'private') {
-      const bound = vaultForScope(opt.value);
-      if (bound && bound.id !== activeVault().id) return `${opt.title} — opens “${bound.name}”`;
-    }
-    return opt.title;
-  }
 </script>
 
 <div
@@ -45,8 +24,8 @@
       type="button"
       role="tab"
       aria-selected={$scope === opt.value}
-      title={titleFor(opt)}
-      onclick={() => pick(opt.value)}
+      title={opt.title}
+      onclick={() => ($scope = opt.value)}
       class="rounded-full px-3 py-1 transition {$scope === opt.value
         ? 'bg-brand text-white shadow-card'
         : 'text-ink-500 hover:text-ink-900'}"

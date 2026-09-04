@@ -17,17 +17,39 @@
 //    the ACTIVE vault's connection), so cross-writing would silently target
 //    the wrong server. Refused loudly instead; open that vault to add there.
 
+import { env } from '$env/dynamic/public';
 import type { Vault } from './vaults';
+import type { BackendId } from './choice';
 import type { Repository } from './types';
-import { vaults, activeVault, localDbName, localMediaDbName } from './vaults';
+import { resolveBackend } from './choice';
+import { vaults, activeVault, localDbName, localMediaDbName, vaultInScope } from './vaults';
 import { repo } from './index';
 
-/** Can records be created into this vault while another one is active? */
+/** A vault's effective backend. A vault with no explicit `backend` (the
+ *  migrated primary/personal vault) resolves to the BUILD default — local on
+ *  the desktop app — exactly as it does when it is the active vault. Getting
+ *  this wrong is why the personal vault used to vanish from the unified view:
+ *  `v.backend === 'local'` is false when backend is simply unset. */
+export function effectiveBackend(v: Vault): BackendId {
+  return (
+    v.backend ??
+    resolveBackend(
+      env.PUBLIC_DATA_BACKEND,
+      env.PUBLIC_SUPABASE_URL,
+      env.PUBLIC_SUPABASE_ANON_KEY,
+      {},
+      env.PUBLIC_DIRECTUS_URL
+    ).backend
+  );
+}
+
+/** Can records be created into this vault while another one is active?
+ *  Cross-vault writes work for local and Supabase targets (Directus is welded
+ *  to the active connection). */
 export function canCreateInto(v: Vault): boolean {
   if (v.id === activeVault().id) return true;
-  // A vault with no explicit backend resolves from build env only while
-  // ACTIVE — from the outside its target is unknowable, so it's not offered.
-  return v.backend === 'local' || v.backend === 'supabase';
+  const b = effectiveBackend(v);
+  return b === 'local' || b === 'supabase';
 }
 
 /** The vaults a "Save to" picker should offer: the active one (always,
@@ -37,10 +59,21 @@ export function creatableVaults(): Vault[] {
 }
 
 /** The OTHER vaults twin can read right now (local by database name; supabase
- *  via a fresh client that restores any persisted member session). */
+ *  via a fresh client that restores any persisted member session). Uses the
+ *  EFFECTIVE backend, so the personal vault (unset backend) is included. */
 export function foreignReadableVaults(): Vault[] {
   const active = activeVault().id;
-  return vaults().filter((v) => v.id !== active && (v.backend === 'local' || v.backend === 'supabase'));
+  return vaults().filter((v) => {
+    if (v.id === active) return false;
+    const b = effectiveBackend(v);
+    return b === 'local' || b === 'supabase';
+  });
+}
+
+/** The foreign vaults whose world matches the current scope — what the
+ *  unified list should overlay in Work/Private/All. */
+export function foreignVaultsInScope(scope: 'all' | 'work' | 'private'): Vault[] {
+  return foreignReadableVaults().filter((v) => vaultInScope(v, scope));
 }
 
 // ── Unified "All vaults" browsing (the 1Password model) ────────────────
@@ -70,15 +103,17 @@ export interface VaultTag {
   name: string;
 }
 
-/** List a collection across every OTHER readable vault, each row tagged with
- *  its vault. Per-vault failures contribute nothing rather than breaking the
- *  whole view — a signed-out managed vault is a normal state, not an error. */
+/** List a collection across a set of foreign vaults (default: all readable),
+ *  each row tagged with its vault. Per-vault failures contribute nothing
+ *  rather than breaking the whole view — a signed-out managed vault is a
+ *  normal state, not an error. */
 export async function listForeign<T>(
   collection: string,
-  query: Parameters<Repository['list']>[1]
+  query: Parameters<Repository['list']>[1],
+  fromVaults: Vault[] = foreignReadableVaults()
 ): Promise<Array<T & { __vault: VaultTag }>> {
   const chunks = await Promise.all(
-    foreignReadableVaults().map(async (v) => {
+    fromVaults.map(async (v) => {
       try {
         const rows = await (await adapterFor(v)).list<T>(collection, query);
         return rows.map((r) => ({ ...r, __vault: { id: v.id, name: v.name } }));
@@ -99,7 +134,8 @@ function adapterFor(v: Vault): Promise<Repository> {
   let made = cache.get(v.id);
   if (!made) {
     made = (async () => {
-      if (v.backend === 'local') {
+      const backend = effectiveBackend(v);
+      if (backend === 'local') {
         const [{ LocalRepository }, { localFileStore }] = await Promise.all([
           import('./local'),
           import('./files')
@@ -107,7 +143,7 @@ function adapterFor(v: Vault): Promise<Repository> {
         // No explicit hydration: LocalRepository hydrates itself on first use.
         return new LocalRepository(localDbName(v.id), localFileStore(localMediaDbName(v.id)));
       }
-      if (v.backend === 'supabase' && v.supabaseUrl && v.supabaseKey) {
+      if (backend === 'supabase' && v.supabaseUrl && v.supabaseKey) {
         const [{ createClient }, { SupabaseRepository }] = await Promise.all([
           import('@supabase/supabase-js'),
           import('./supabase')

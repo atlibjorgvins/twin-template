@@ -174,14 +174,37 @@ export async function searchOrgs(
 export async function searchOrgsForeign(
   q: string,
   limit = 25,
+  scope: 'all' | 'work' | 'private' = 'all',
   opts: OrgSearchOpts = {}
 ): Promise<Array<Organization & { __vault: { id: string; name: string } }>> {
   const query = q.trim();
-  const and = await buildOrgSearchFilter(q, [], { ...opts, searchTags: false });
-  const sort =
-    opts.sort && opts.sort.length ? opts.sort : query ? ['name'] : ['-date_created', '-id'];
-  const { listForeign } = await import('$lib/data/repo/crossVault');
-  return listForeign<Organization>('organization', { where: andToWhere(and), limit, sort });
+  const [{ listForeign, foreignVaultsInScope }, { scopeWhere }, { vaultWorld }] = await Promise.all([
+    import('$lib/data/repo/crossVault'),
+    import('$lib/scope'),
+    import('$lib/data/repo/vaults')
+  ]);
+  const sort = opts.sort && opts.sort.length ? opts.sort : query ? ['name'] : ['-date_created', '-id'];
+  // Scalar-only base filter (no tag junction — cross-vault ids collide).
+  const base = await buildOrgSearchFilter(q, [], { ...opts, searchTags: false });
+
+  const inScope = foreignVaultsInScope(scope);
+  const whole = inScope.filter((v) => scope !== 'all' && vaultWorld(v) === scope);
+  const mixed = inScope.filter((v) => !whole.includes(v));
+  const rowFilter = scope === 'all' ? null : scopeWhere(scope);
+
+  const [a, b] = await Promise.all([
+    whole.length
+      ? listForeign<Organization>('organization', { where: andToWhere(base), limit, sort }, whole)
+      : Promise.resolve([]),
+    mixed.length
+      ? listForeign<Organization>(
+          'organization',
+          { where: andToWhere(rowFilter ? [...base, rowFilter] : base), limit, sort },
+          mixed
+        )
+      : Promise.resolve([])
+  ]);
+  return [...a, ...b];
 }
 
 /** Return the distinct set of non-empty industry values — for filter dropdowns. */

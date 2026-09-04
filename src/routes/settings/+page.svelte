@@ -192,6 +192,12 @@
     <p class="mt-1 text-sm text-ink-500">
       Pick a section to manage. Changes apply immediately — no save button needed.
     </p>
+    <div class="mt-2 flex items-center gap-2 text-[11px] text-ink-400">
+      <span class="rounded-full px-2 py-0.5 font-mono" style="background: var(--bg-tertiary); color: var(--text-tertiary);">
+        v{__APP_VERSION__}
+      </span>
+      <span>{activeVault().name} · {BACKEND_VALUE[activeBackend]}</span>
+    </div>
   </header>
 
   {#each groups as g (g.label)}

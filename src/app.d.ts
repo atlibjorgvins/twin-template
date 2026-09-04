@@ -5,6 +5,8 @@ declare global {
     // interface PageData {}
     // interface Platform {}
   }
+  /** package.json version, frozen into the bundle by vite.config.ts. */
+  const __APP_VERSION__: string;
 }
 
 export {};

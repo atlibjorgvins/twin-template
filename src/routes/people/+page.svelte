@@ -32,7 +32,7 @@
   import VaultPicker from '$lib/VaultPicker.svelte';
   import VaultBadge from '$lib/VaultBadge.svelte';
   import { createInVault, canCreateInto, unifiedEnabled } from '$lib/data/repo/crossVault';
-  import { activeVault, vaultForScope, vaults } from '$lib/data/repo/vaults';
+  import { activeVault, defaultVaultForScope, vaults } from '$lib/data/repo/vaults';
   import { switchVault } from '$lib/vaultSwitch';
   import { searchPeopleForeign } from '$lib/data/people';
 
@@ -66,7 +66,7 @@
   let newVault = $state(activeVault().id);
   $effect(() => {
     const s = newScope;
-    const bound = s === 'work' || s === 'private' ? vaultForScope(s) : null;
+    const bound = s === 'work' || s === 'private' ? defaultVaultForScope(s) : null;
     newVault = bound && canCreateInto(bound) ? bound.id : activeVault().id;
   });
 
@@ -195,6 +195,10 @@
   });
 
   let timer: ReturnType<typeof setTimeout>;
+  // Guards against an async race: switching scope fires a new load while the
+  // previous (e.g. All) fetch is still in flight; without this, the slower
+  // stale run could resolve last and overwrite the current list.
+  let loadGen = 0;
   $effect(() => {
     clearTimeout(timer);
     const query = q;
@@ -202,6 +206,7 @@
     const strict = scopeOnly;
     const archived = showArchived;
     const tagIds = selTagIds;
+    const gen = ++loadGen;
     timer = setTimeout(async () => {
       loading = true;
       error = '';
@@ -226,29 +231,32 @@
           searchPeople(query, PAGE_SIZE, extra, { includeArchived: archived, sort: listSort }),
           countPeople(query, extra, { includeArchived: archived })
         ]);
-        // Unified "All vaults" (the 1Password model): in All mode, fold in
-        // every other readable vault's people, each badged with its vault.
-        // Work/Private already narrow to a single vault, so no merge there.
+        // Unified browsing (the 1Password model): fold in every other
+        // readable vault whose WORLD matches the scope — All = all vaults,
+        // Work = work + shared vaults, Private = private + shared. The toggle
+        // filters this merged list; it no longer switches vaults.
         let foreign: Row[] = [];
-        if (s === 'all' && unifiedEnabled()) {
+        if (unifiedEnabled()) {
           try {
-            foreign = await searchPeopleForeign(query, PAGE_SIZE, {
+            foreign = await searchPeopleForeign(query, PAGE_SIZE, s, {
               includeArchived: archived,
               sort: listSort
             });
           } catch { foreign = []; }
         }
+        if (gen !== loadGen) return; // a newer load started — drop this result
         results = [...rows, ...foreign];
         total = n + foreign.length;
         // Roles decorate LOCAL rows only — getCurrentRolesFor hits the active
         // vault, and a foreign row's id means something else there.
         try {
-          rolesByPerson = await getCurrentRolesFor(rows.map((p) => p.id));
-        } catch { rolesByPerson = new Map(); }
+          const roles = await getCurrentRolesFor(rows.map((p) => p.id));
+          if (gen === loadGen) rolesByPerson = roles;
+        } catch { if (gen === loadGen) rolesByPerson = new Map(); }
       } catch (err) {
-        error = err instanceof Error ? err.message : String(err);
+        if (gen === loadGen) error = err instanceof Error ? err.message : String(err);
       } finally {
-        loading = false;
+        if (gen === loadGen) loading = false;
       }
     }, 200);
   });
