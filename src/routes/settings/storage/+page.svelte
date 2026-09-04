@@ -18,6 +18,7 @@
     type BackendId,
     type MediaLocation
   } from '$lib/data/repo';
+  import { checkSupabaseConn, connCheckMessage } from '$lib/data/repo/validate';
   import { localFileStore } from '$lib/data/repo/files';
   import { activeVault } from '$lib/data/repo/vaults';
   import { connection } from '$lib/offline';
@@ -71,8 +72,22 @@
   );
   const changed = $derived(backendPick !== activeBackend || directusEdited);
 
-  function apply() {
-    if (!valid || !changed) return;
+  // A Supabase target is probed BEFORE the switch is saved — a rejected key
+  // must fail here, next to the paste field, not as a broken vault later.
+  let applyBusy = $state(false);
+  let applyError = $state('');
+  async function apply() {
+    if (!valid || !changed || applyBusy) return;
+    applyError = '';
+    if (backendPick === 'supabase') {
+      applyBusy = true;
+      const check = await checkSupabaseConn(sbUrl.trim(), sbKey.trim());
+      applyBusy = false;
+      if (check !== 'ok') {
+        applyError = connCheckMessage(check);
+        return;
+      }
+    }
     saveBackendChoice(backendPick, {
       supabase: backendPick === 'supabase' ? { url: sbUrl, key: sbKey } : undefined,
       directus: backendPick === 'directus' ? { url: dxUrl, token: dxToken } : undefined
@@ -296,13 +311,16 @@
           : 'Enter the server URL first.'}
       </p>
     {/if}
+    {#if applyError}
+      <p class="text-xs" style="color: var(--state-danger);">{applyError}</p>
+    {/if}
     <div>
       <button type="button"
               onclick={apply}
-              disabled={!valid || !changed}
+              disabled={!valid || !changed || applyBusy}
               class="px-5 py-2 font-display text-sm font-medium transition"
-              style={`background: var(--accent-electric); color: var(--accent-text); border-radius: var(--radius-md); opacity: ${valid && changed ? 1 : 0.4};`}>
-        Switch storage
+              style={`background: var(--accent-electric); color: var(--accent-text); border-radius: var(--radius-md); opacity: ${valid && changed && !applyBusy ? 1 : 0.4};`}>
+        {applyBusy ? 'Checking connection…' : 'Switch storage'}
       </button>
     </div>
   </fieldset>

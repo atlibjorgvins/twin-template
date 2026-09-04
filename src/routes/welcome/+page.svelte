@@ -13,6 +13,7 @@
   import { PLUGINS } from '$lib/plugins/registry';
   import { INSTANCE_LABEL, authEnabled } from '$lib/instance';
   import { activeBackend, saveBackendChoice, deviceDirectusUrl, type BackendId } from '$lib/data/repo';
+  import { checkSupabaseConn, connCheckMessage } from '$lib/data/repo/validate';
   import { PUBLIC_DIRECTUS_URL } from '$env/static/public';
 
   // What the "external database" card should say it points at: the device
@@ -41,7 +42,9 @@
       (backendPick === 'supabase' && sbUrl.trim().length > 0 && sbKey.trim().length > 0) ||
       (backendPick === 'directus' && dxUrl.trim().length > 0)
   );
-  const blocked = $derived(STEPS[step] === 'storage' && !storageValid);
+  let storageChecking = $state(false);
+  let storageError = $state('');
+  const blocked = $derived(STEPS[step] === 'storage' && (!storageValid || storageChecking));
 
 
   // Session mode knows who signed in — prefill rather than ask twice.
@@ -67,9 +70,28 @@
     return 'Good evening';
   });
 
-  function next() {
+  // Probe a pasted Supabase connection when LEAVING the storage step, so a
+  // bad key is caught with the paste field still on screen instead of
+  // becoming a broken vault three steps later. (State lives up by `blocked`.)
+  async function storageStepOk(): Promise<boolean> {
+    if (backendPick !== 'supabase') return true;
+    storageChecking = true;
+    const check = await checkSupabaseConn(sbUrl.trim(), sbKey.trim());
+    storageChecking = false;
+    if (check === 'ok') {
+      storageError = '';
+      return true;
+    }
+    storageError = connCheckMessage(check);
+    return false;
+  }
+
+  async function next() {
     if (STEPS[step] === 'name') setName(name);
-    if (STEPS[step] === 'storage' && !storageValid) return;
+    if (STEPS[step] === 'storage') {
+      if (!storageValid || storageChecking) return;
+      if (!(await storageStepOk())) return;
+    }
     if (step < STEPS.length - 1) step += 1;
     else finish();
   }
@@ -159,6 +181,9 @@
     <div class="mt-6">
       <StorageChooser bind:backendPick bind:sbUrl bind:sbKey bind:dxUrl bind:dxToken />
     </div>
+    {#if storageError}
+      <p class="mt-3 text-xs" style="color: var(--state-danger);">{storageError}</p>
+    {/if}
     {#if !storageValid}
       <p class="mt-3 text-xs" style="color: var(--state-warning);">
         {backendPick === 'supabase'

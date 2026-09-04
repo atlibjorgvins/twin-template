@@ -285,7 +285,10 @@ export class SupabaseAuthProvider implements AuthProvider {
 
   async login(email: string, password: string): Promise<void> {
     const { error } = await this.client.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
+    // Keep the HTTP status on the thrown error: the login page reads it to
+    // tell a wrong password (400) from a rejected API key (401/403) from a
+    // dead URL (no status). new Error(message) alone erased exactly that.
+    if (error) throw Object.assign(new Error(error.message), { status: error.status });
   }
 
   async logout(): Promise<void> {

@@ -22,10 +22,28 @@
       // Full navigation: the layout guard re-probes the session and every
       // loader re-reads as the signed-in member.
       window.location.href = '/';
-    } catch {
-      // One message for both halves, on purpose — never tell a prober which
-      // part was wrong.
-      error = 'That email and password did not match.';
+    } catch (e) {
+      // Say what actually failed. A wrong password, a key the gateway
+      // rejects, and a dead URL are three different problems with three
+      // different fixes — collapsing them into one message once cost a
+      // whole debugging afternoon. Credentials stay deliberately vague
+      // (never tell a prober which half was wrong); the other two are the
+      // vault's configuration and deserve the truth.
+      const status = (e as { status?: number })?.status;
+      if (status === 401 || status === 403) {
+        error =
+          "The server rejected this vault's API key — the password never got checked. " +
+          'Remove the vault and add it again with the full "anon" key ' +
+          '(Supabase dashboard → Project Settings → API keys → Legacy API keys).';
+      } else if (status === 429) {
+        error = 'Too many attempts — wait a minute, then try again.';
+      } else if (typeof status === 'number' && status < 500) {
+        error = 'That email and password did not match.';
+      } else {
+        error =
+          "Could not reach this vault's server at all — check the project URL on the vault " +
+          '(Settings → Vaults shows it) and your connection.';
+      }
       password = '';
     } finally {
       busy = false;

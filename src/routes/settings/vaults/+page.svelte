@@ -8,6 +8,7 @@
   import Icon from '$lib/Icon.svelte';
   import StorageChooser from '$lib/StorageChooser.svelte';
   import { vaults, activeVault, setActiveVault, addVault, removeVault, type Vault } from '$lib/data/repo/vaults';
+  import { checkSupabaseConn, connCheckMessage } from '$lib/data/repo/validate';
   import { activeBackend, auth, type BackendId } from '$lib/data/repo';
 
   // Managed vault: end the member session. The guard then routes to
@@ -66,8 +67,23 @@
         (backendPick === 'directus' && dxUrl.trim().length > 0))
   );
 
-  function create() {
-    if (!valid) return;
+  // A Supabase vault is probed BEFORE it is saved — a mis-pasted key used to
+  // store fine and then masquerade as a login failure. Refuse it here, while
+  // the paste field is still on screen.
+  let addBusy = $state(false);
+  let addError = $state('');
+  async function create() {
+    if (!valid || addBusy) return;
+    addError = '';
+    if (backendPick === 'supabase') {
+      addBusy = true;
+      const check = await checkSupabaseConn(sbUrl.trim(), sbKey.trim());
+      addBusy = false;
+      if (check !== 'ok') {
+        addError = connCheckMessage(check);
+        return;
+      }
+    }
     const v = addVault({
       name: name.trim(),
       kind,
@@ -189,11 +205,14 @@
         Joining a managed team vault: ask the admin for the project URL + anon key, tick
         “Managed team vault”, and sign in with the account they created for you.
       </p>
+      {#if addError}
+        <p class="text-xs" style="color: var(--state-danger);">{addError}</p>
+      {/if}
       <div class="flex items-center gap-3">
-        <button type="button" onclick={create} disabled={!valid}
+        <button type="button" onclick={create} disabled={!valid || addBusy}
                 class="px-5 py-2 font-display text-sm font-medium transition"
-                style={`background: var(--accent-electric); color: var(--accent-text); border-radius: var(--radius-md); opacity: ${valid ? 1 : 0.4};`}>
-          Add & open
+                style={`background: var(--accent-electric); color: var(--accent-text); border-radius: var(--radius-md); opacity: ${valid && !addBusy ? 1 : 0.4};`}>
+          {addBusy ? 'Checking connection…' : 'Add & open'}
         </button>
         <button type="button" onclick={() => (adding = false)}
                 class="text-sm text-ink-500 hover:text-ink-900">
