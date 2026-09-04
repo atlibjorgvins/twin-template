@@ -48,8 +48,11 @@
          BEFORE the bundle loads; vaultSwitch.ts (finishVaultSwitch) fades it
          out once the new vault has booted. Inline on purpose: it must exist
          while no JS bundle does. -->
-    <div id="vault-switch-curtain" hidden
-         style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: #fafafa; color: #666; font: 500 14px system-ui, sans-serif; letter-spacing: 0.02em; transition: opacity 200ms ease;">
+    <!-- display:none INLINE and toggled INLINE — never `hidden`: an inline
+         display beats the [hidden] UA rule, which shipped exactly once as an
+         always-on white curtain over the whole app (v1.3.0). -->
+    <div id="vault-switch-curtain"
+         style="display: none; position: fixed; inset: 0; z-index: 9999; align-items: center; justify-content: center; background: #fafafa; color: #666; font: 500 14px system-ui, sans-serif; letter-spacing: 0.02em; transition: opacity 200ms ease;">
       <span id="vault-switch-label"></span>
     </div>
     <script>
@@ -65,7 +68,7 @@
           }
           // textContent, never markup: the name is user data.
           document.getElementById('vault-switch-label').textContent = 'Opening ' + (d.name || 'vault') + '…';
-          el.hidden = false;
+          el.style.display = 'flex';
         } catch (e) {
           /* no curtain is only cosmetic */
         }

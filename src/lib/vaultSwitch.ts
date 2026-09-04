@@ -43,6 +43,8 @@ export function finishVaultSwitch(): void {
     const el = document.getElementById('vault-switch-curtain');
     if (!el) return;
     el.style.opacity = '0';
-    setTimeout(() => (el.hidden = true), 220);
+    // display, not `hidden`: the element's inline display would override the
+    // [hidden] rule — the v1.3.0 white-screen in one line.
+    setTimeout(() => (el.style.display = 'none'), 220);
   }, 30);
 }
