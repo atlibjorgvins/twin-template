@@ -32,7 +32,9 @@
   // navigation). applyAndReload owns the choreography: the switch animates,
   // the sync fires without blocking, the page fades, then reloads.
   function toggle(id: FeatureKey, on: boolean) {
-    applyAndReload(() => setFeatureEnabled(id, on));
+    // Pass the id on ENABLE so a Supabase vault can grow the plugin's tables
+    // before the reload (schemaSync via toggleFlow).
+    applyAndReload(() => setFeatureEnabled(id, on), on ? id : undefined);
   }
 
   const installedIds = new Set<string>(FEATURE_KEYS);
@@ -92,7 +94,7 @@
           setFeatureEnabled(id as FeatureKey, true);
         }
       }
-    });
+    }, e.provides[0]);
   }
   // Marketplace: show the ones you don't already have first.
   const marketplace = $derived(

@@ -4,7 +4,8 @@
   // created/removed by the vault's admin in the Supabase dashboard; twin only
   // holds the session (supabase-js persists it per project).
   import { auth } from '$lib/data/repo';
-  import { activeVault, vaults, setActiveVault } from '$lib/data/repo/vaults';
+  import { activeVault, vaults } from '$lib/data/repo/vaults';
+  import { switchVault } from '$lib/vaultSwitch';
 
   const vault = activeVault();
   let email = $state('');
@@ -54,8 +55,8 @@
   // back to their own vault instead of being locked out of the whole app.
   const others = vaults().filter((v) => v.id !== vault.id);
   function backTo(id: string) {
-    setActiveVault(id);
-    window.location.href = '/';
+    const v = others.find((x) => x.id === id);
+    switchVault(id, v?.name ?? 'vault');
   }
 </script>
 

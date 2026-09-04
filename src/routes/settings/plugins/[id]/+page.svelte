@@ -34,7 +34,7 @@
   onMount(restoreToggleScroll);
 
   function toggle(next: boolean) {
-    applyAndReload(() => setFeatureEnabled(p.id as FeatureKey, next));
+    applyAndReload(() => setFeatureEnabled(p.id as FeatureKey, next), next ? p.id : undefined);
   }
 
   // Inline settings: seed from storage, persist on change. Per-device, no

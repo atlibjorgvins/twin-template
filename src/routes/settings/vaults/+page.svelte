@@ -7,7 +7,8 @@
   import SettingsSubpageHeader from '$lib/admin/SettingsSubpageHeader.svelte';
   import Icon from '$lib/Icon.svelte';
   import StorageChooser from '$lib/StorageChooser.svelte';
-  import { vaults, activeVault, setActiveVault, addVault, removeVault, bindVaultScope, type Vault } from '$lib/data/repo/vaults';
+  import { vaults, activeVault, addVault, removeVault, bindVaultScope, type Vault } from '$lib/data/repo/vaults';
+  import { switchVault } from '$lib/vaultSwitch';
   import { checkSupabaseConn, connCheckMessage, normalizeSupabaseUrl, normalizeSupabaseKey } from '$lib/data/repo/validate';
   import { activeBackend, auth, type BackendId } from '$lib/data/repo';
 
@@ -39,9 +40,10 @@
 
   function open(id: string) {
     if (id === active.id) return;
-    setActiveVault(id);
-    // A vault swap re-points the whole module graph — full load, not goto.
-    window.location.href = '/';
+    const v = all.find((x) => x.id === id);
+    // A vault swap re-points the whole module graph — full load, behind the
+    // switch curtain.
+    switchVault(id, v?.name ?? 'vault');
   }
 
   let confirmRemove = $state<string | null>(null);
@@ -110,8 +112,7 @@
           }
         : {})
     });
-    setActiveVault(v.id);
-    window.location.href = '/';
+    switchVault(v.id, v.name);
   }
 </script>
 

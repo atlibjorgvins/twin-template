@@ -42,6 +42,35 @@
     %sveltekit.head%
   </head>
   <body class="bg-surface-page text-ink-900 font-sans antialiased">
+    <!-- Vault-switch curtain. A vault swap is a full reload by contract (the
+         repo is a per-load singleton), and the reload gap used to show as a
+         white flash. This paints a themed cover with the destination's name
+         BEFORE the bundle loads; vaultSwitch.ts (finishVaultSwitch) fades it
+         out once the new vault has booted. Inline on purpose: it must exist
+         while no JS bundle does. -->
+    <div id="vault-switch-curtain" hidden
+         style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: #fafafa; color: #666; font: 500 14px system-ui, sans-serif; letter-spacing: 0.02em; transition: opacity 200ms ease;">
+      <span id="vault-switch-label"></span>
+    </div>
+    <script>
+      (function () {
+        try {
+          var raw = sessionStorage.getItem('twin.vaultSwitch');
+          if (!raw) return;
+          var d = JSON.parse(raw);
+          var el = document.getElementById('vault-switch-curtain');
+          if (document.documentElement.getAttribute('data-theme') === 'dark') {
+            el.style.background = '#0a0a0a';
+            el.style.color = '#999';
+          }
+          // textContent, never markup: the name is user data.
+          document.getElementById('vault-switch-label').textContent = 'Opening ' + (d.name || 'vault') + '…';
+          el.hidden = false;
+        } catch (e) {
+          /* no curtain is only cosmetic */
+        }
+      })();
+    </script>
     <div style="display: contents">%sveltekit.body%</div>
   </body>
 </html>

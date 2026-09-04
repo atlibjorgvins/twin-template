@@ -1,6 +1,7 @@
 <script lang="ts">
   import { scope, type Scope } from '$lib/scope';
-  import { vaultForScope, activeVault, setActiveVault } from '$lib/data/repo/vaults';
+  import { vaultForScope, activeVault } from '$lib/data/repo/vaults';
+  import { switchVault } from '$lib/vaultSwitch';
 
   const opts: { value: Scope; label: string; title: string }[] = [
     { value: 'all', label: 'All', title: 'Work + Private' },
@@ -18,8 +19,7 @@
     if (v === 'work' || v === 'private') {
       const bound = vaultForScope(v);
       if (bound && bound.id !== activeVault().id) {
-        setActiveVault(bound.id);
-        window.location.href = window.location.pathname;
+        switchVault(bound.id, bound.name);
         return;
       }
     }

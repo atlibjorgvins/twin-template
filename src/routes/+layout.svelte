@@ -20,12 +20,12 @@
     vaultMenuPos = { left: r.right + 8, bottom: window.innerHeight - r.bottom };
     vaultMenuOpen = !vaultMenuOpen;
   }
-  function switchVault(id: string) {
+  function switchVaultFromMenu(id: string, name: string) {
     if (id === activeVault().id) { vaultMenuOpen = false; return; }
-    setActiveVault(id);
-    window.location.href = '/'; // repo is a per-load singleton
+    switchVault(id, name); // curtain transition; repo is a per-load singleton
   }
   import { initDesktop } from '$lib/desktop';
+  import { switchVault, finishVaultSwitch } from '$lib/vaultSwitch';
 
   // ── Sidebar width (desktop rail) ─────────────────────────────────────
   // Icon rail by default; `twin.sidebarWide` remembers a per-device
@@ -77,6 +77,7 @@
   // sync with the DOM, and we subscribe to OS appearance flips so
   // 'auto' tracks them live.
   onMount(() => {
+    finishVaultSwitch(); // lift the vault-switch curtain, restore scroll
     applyTheme();
     watchSystemTheme();
     // Desktop shell only (no-op in browsers): register the global spotlight
@@ -485,7 +486,7 @@
                   role="menuitem"
                   class="flex w-full items-center gap-2 px-2.5 py-2 text-left text-sm"
                   style={`border-radius: var(--radius-sm); color: var(--text-primary); background: ${v.id === activeVault().id ? 'var(--accent-alpha-10)' : 'transparent'};`}
-                  onclick={() => switchVault(v.id)}
+                  onclick={() => switchVaultFromMenu(v.id, v.name)}
                 >
                   <Icon name={v.kind === 'workspace' ? 'building' : 'lock'} size={14} />
                   <span class="min-w-0 flex-1 truncate">{v.name}</span>

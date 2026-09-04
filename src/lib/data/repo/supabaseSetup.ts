@@ -131,6 +131,26 @@ begin
     execute format('create policy twin_anon_all on %I for all to anon using (true) with check (true)', t);
   end loop;
 end $$;
+
+-- In-app schema updates. Enabling a twin plugin needs its tables, and the
+-- anon key rightly cannot create them — so this function lets twin apply the
+-- plugin's schema WITHOUT a dashboard trip, guarded exactly like the SQL
+-- Editor itself: only the SECRET (service_role) key may call it. It grants
+-- no power that key does not already have.
+create or replace function twin_apply_schema(ddl text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+begin
+  execute ddl;
+end
+$fn$;
+revoke all on function twin_apply_schema(text) from public;
+revoke all on function twin_apply_schema(text) from anon;
+revoke all on function twin_apply_schema(text) from authenticated;
+grant execute on function twin_apply_schema(text) to service_role;
 `;
 
 /**
