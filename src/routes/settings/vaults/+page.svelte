@@ -8,7 +8,7 @@
   import Icon from '$lib/Icon.svelte';
   import StorageChooser from '$lib/StorageChooser.svelte';
   import { vaults, activeVault, setActiveVault, addVault, removeVault, type Vault } from '$lib/data/repo/vaults';
-  import { checkSupabaseConn, connCheckMessage } from '$lib/data/repo/validate';
+  import { checkSupabaseConn, connCheckMessage, normalizeSupabaseUrl, normalizeSupabaseKey } from '$lib/data/repo/validate';
   import { activeBackend, auth, type BackendId } from '$lib/data/repo';
 
   // Managed vault: end the member session. The guard then routes to
@@ -92,7 +92,13 @@
         ? { directusUrl: dxUrl.trim(), ...(dxToken.trim() ? { directusToken: dxToken.trim() } : {}) }
         : {}),
       ...(backendPick === 'supabase'
-        ? { supabaseUrl: sbUrl.trim(), supabaseKey: sbKey.trim(), ...(sbManaged ? { managed: true } : {}) }
+        ? {
+            // Save the NORMALIZED values — the vault must hold what the probe
+            // just blessed, not the raw paste (wrapped keys, dashboard URLs).
+            supabaseUrl: normalizeSupabaseUrl(sbUrl),
+            supabaseKey: normalizeSupabaseKey(sbKey),
+            ...(sbManaged ? { managed: true } : {})
+          }
         : {})
     });
     setActiveVault(v.id);

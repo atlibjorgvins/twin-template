@@ -24,6 +24,7 @@ import { resolveBackend, type BackendId, type StoredChoice } from './choice';
 import { saveDirectusConnection, deviceDirectusUrl } from './directusConfig';
 import { localFileStore } from './files';
 import { activeVault, updateActiveVault, localDbName, localMediaDbName } from './vaults';
+import { normalizeSupabaseUrl, normalizeSupabaseKey } from './validate';
 import { directusAbsolute } from '$lib/apiBase';
 import { assetAuthParam } from '$lib/data/credentials';
 import type { AuthProvider, Id, Query, Repository } from './types';
@@ -58,8 +59,14 @@ export function saveBackendChoice(
   try {
     updateActiveVault({
       backend,
+      // Normalized, not just trimmed: a wrapped-paste key with an inner line
+      // break makes fetch() throw on every later request, and a pasted
+      // dashboard address points at supabase.com — validate.ts undoes both.
       ...(backend === 'supabase' && conn?.supabase
-        ? { supabaseUrl: conn.supabase.url.trim(), supabaseKey: conn.supabase.key.trim() }
+        ? {
+            supabaseUrl: normalizeSupabaseUrl(conn.supabase.url),
+            supabaseKey: normalizeSupabaseKey(conn.supabase.key)
+          }
         : {})
     });
     if (backend === 'directus' && conn?.directus) {
