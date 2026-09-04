@@ -35,6 +35,13 @@ export interface Vault {
   directusToken?: string;
   supabaseUrl?: string;
   supabaseKey?: string;
+  /** Managed team vault: members must SIGN IN (Supabase Auth) — the anon key
+   *  alone opens nothing, and removing a member in Supabase revokes access. */
+  managed?: boolean;
+  /** Admin only: the project's SECRET (service_role) key, pasted into
+   *  Settings → Vaults → Members. Unlocks in-app member administration on
+   *  THIS device; never synced, never sent anywhere but the project itself. */
+  adminKey?: string;
 }
 
 const VAULTS_KEY = 'twin.vaults';

@@ -6,7 +6,7 @@
   // (the wizard applies on finish, settings on its Apply button) via the
   // bindable props.
   import { activeBackend, deviceDirectusUrl, type BackendId } from '$lib/data/repo';
-  import { SUPABASE_SETUP_SQL } from '$lib/data/repo/supabaseSetup';
+  import { SUPABASE_SETUP_SQL, SUPABASE_MANAGED_SETUP_SQL } from '$lib/data/repo/supabaseSetup';
   import { PUBLIC_DIRECTUS_URL } from '$env/static/public';
 
   // Collapsible one-time database setup for the Supabase option.
@@ -15,10 +15,10 @@
   let copyTimer: ReturnType<typeof setTimeout> | undefined;
   async function copySetup() {
     try {
-      await navigator.clipboard.writeText(SUPABASE_SETUP_SQL);
+      await navigator.clipboard.writeText(setupSql);
     } catch {
       const ta = document.createElement('textarea');
-      ta.value = SUPABASE_SETUP_SQL; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      ta.value = setupSql; ta.style.position = 'fixed'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.select();
       try { document.execCommand('copy'); } catch { /* nothing else to try */ }
       ta.remove();
@@ -32,6 +32,7 @@
     backendPick = $bindable(activeBackend),
     sbUrl = $bindable(''),
     sbKey = $bindable(''),
+    sbManaged = $bindable(false),
     dxUrl = $bindable(deviceDirectusUrl() || (PUBLIC_DIRECTUS_URL ?? '').trim()),
     dxToken = $bindable('')
   }: {
@@ -40,7 +41,10 @@
     sbKey?: string;
     dxUrl?: string;
     dxToken?: string;
+    sbManaged?: boolean;
   } = $props();
+
+  const setupSql = $derived(sbManaged ? SUPABASE_MANAGED_SETUP_SQL : SUPABASE_SETUP_SQL);
 
   const effectiveDirectusUrl = deviceDirectusUrl() || (PUBLIC_DIRECTUS_URL ?? '').trim();
 
@@ -114,10 +118,15 @@
       <span class="mb-1 block text-xs text-ink-400">Anon (public) key</span>
       <input type="text" class="input w-full" placeholder="eyJhbGciOi…" bind:value={sbKey} />
     </label>
-    <p class="text-xs text-ink-400">
-      Both are on your project's API settings page. With twin's setup script the anon key
-      unlocks the whole vault — treat it like a password and share it with no one.
-    </p>
+    <label class="flex items-start gap-2 text-xs text-ink-500">
+      <input type="checkbox" class="mt-0.5" bind:checked={sbManaged} />
+      <span>
+        <span class="font-medium" style="color: var(--text-primary);">Managed team vault</span> —
+        members sign in with their own account, and the admin invites and removes people
+        inside twin (Settings → Vaults → Members). Removing someone revokes their access.
+        Without this, the anon key alone unlocks the vault — treat it like a password.
+      </span>
+    </label>
 
     <!-- One-time database setup. An anon key cannot create tables, so twin
          hands over the SQL instead of pretending it can run it. -->
@@ -137,7 +146,7 @@
         </ol>
         <div class="mt-2 flex items-start gap-2">
           <pre class="max-h-40 min-w-0 flex-1 overflow-auto whitespace-pre rounded-[8px] px-3 py-2 font-mono text-[10px]"
-               style="background: var(--bg-tertiary); color: var(--text-secondary);">{SUPABASE_SETUP_SQL}</pre>
+               style="background: var(--bg-tertiary); color: var(--text-secondary);">{setupSql}</pre>
           <button type="button" onclick={copySetup}
                   class="shrink-0 rounded-[8px] border border-surface-border px-2.5 py-2 text-xs font-medium text-ink-700 hover:bg-surface-hover">
             {copiedSetup ? 'Copied ✓' : 'Copy'}
@@ -145,8 +154,11 @@
         </div>
         <p class="mt-2 text-[11px] text-ink-400">
           Images are kept on this device when rows live in Supabase (change under
-          Settings → Storage). Team-grade per-user access is on the roadmap; today one
-          project = one person's vault.
+          Settings → Storage).
+          {#if sbManaged}
+            After connecting, invite your team under Settings → Vaults → Members — you'll
+            need the project's secret (service_role) key from the same API keys page.
+          {/if}
         </p>
       {/if}
     </div>

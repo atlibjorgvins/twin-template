@@ -8,7 +8,20 @@
   import Icon from '$lib/Icon.svelte';
   import StorageChooser from '$lib/StorageChooser.svelte';
   import { vaults, activeVault, setActiveVault, addVault, removeVault, type Vault } from '$lib/data/repo/vaults';
-  import { activeBackend, type BackendId } from '$lib/data/repo';
+  import { activeBackend, auth, type BackendId } from '$lib/data/repo';
+
+  // Managed vault: end the member session. The guard then routes to
+  // /vault-login on the next navigation.
+  let signingOut = $state(false);
+  async function signOutVault() {
+    if (signingOut) return;
+    signingOut = true;
+    try {
+      await auth.logout();
+    } finally {
+      window.location.href = '/';
+    }
+  }
 
   const BACKEND_LABEL: Record<BackendId, string> = {
     local: 'this device',
@@ -45,6 +58,7 @@
   let sbKey = $state('');
   let dxUrl = $state('');
   let dxToken = $state('');
+  let sbManaged = $state(false);
   const valid = $derived(
     name.trim().length > 0 &&
       (backendPick === 'local' ||
@@ -62,7 +76,7 @@
         ? { directusUrl: dxUrl.trim(), ...(dxToken.trim() ? { directusToken: dxToken.trim() } : {}) }
         : {}),
       ...(backendPick === 'supabase'
-        ? { supabaseUrl: sbUrl.trim(), supabaseKey: sbKey.trim() }
+        ? { supabaseUrl: sbUrl.trim(), supabaseKey: sbKey.trim(), ...(sbManaged ? { managed: true } : {}) }
         : {})
     });
     setActiveVault(v.id);
@@ -92,6 +106,10 @@
             <span class="font-medium text-ink-900">{v.name}</span>
             <span class="rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
                   style="background: var(--bg-tertiary); color: var(--text-tertiary);">{v.kind}</span>
+            {#if v.managed}
+              <span class="rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                    style="background: var(--accent-alpha-10); color: var(--accent-electric);">managed</span>
+            {/if}
             {#if isActive}
               <span class="text-[10px] uppercase tracking-wider" style="color: var(--accent-electric);">current</span>
             {/if}
@@ -100,6 +118,17 @@
             {backendLabel(v)}{#if v.directusUrl} · {v.directusUrl}{:else if v.supabaseUrl} · {v.supabaseUrl}{/if}
           </div>
         </div>
+        {#if isActive && v.managed}
+          <a href="/settings/vaults/members"
+             class="shrink-0 rounded-[10px] px-3 py-1.5 text-xs font-medium"
+             style="background: var(--accent-electric); color: var(--accent-text);">
+            Members
+          </a>
+          <button type="button" onclick={signOutVault} disabled={signingOut}
+                  class="shrink-0 rounded-[10px] border border-surface-border px-3 py-1.5 text-xs font-medium text-ink-500 hover:bg-surface-hover">
+            {signingOut ? 'Signing out…' : 'Sign out'}
+          </button>
+        {/if}
         {#if !isActive}
           <button type="button"
                   onclick={() => open(v.id)}
@@ -154,12 +183,11 @@
       </div>
       <div>
         <span class="mb-1 block text-xs text-ink-400">Where its data lives</span>
-        <StorageChooser bind:backendPick bind:sbUrl bind:sbKey bind:dxUrl bind:dxToken />
+        <StorageChooser bind:backendPick bind:sbUrl bind:sbKey bind:dxUrl bind:dxToken bind:sbManaged />
       </div>
       <p class="text-xs text-ink-400">
-        Joining a team's vault: ask the owner for the server URL and an access token made for
-        you. (Login-based servers need a same-origin deployment and can't be joined from here
-        yet — use the token they issue you instead.)
+        Joining a managed team vault: ask the admin for the project URL + anon key, tick
+        “Managed team vault”, and sign in with the account they created for you.
       </p>
       <div class="flex items-center gap-3">
         <button type="button" onclick={create} disabled={!valid}
