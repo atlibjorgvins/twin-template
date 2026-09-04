@@ -12,6 +12,17 @@
   } from '$lib/data/repo/vaultAdmin';
 
   const vault = activeVault();
+
+  // Mark the admin's own row "you". The signed-in member's email comes from
+  // the vault session (not the admin key), so a fresh probe is enough.
+  let myEmail = $state('');
+  $effect(() => {
+    if (!usable) return;
+    import('$lib/data/repo')
+      .then(({ auth }) => auth.me<{ email?: string }>(['id', 'email']))
+      .then((u) => { myEmail = (u?.email ?? '').toLowerCase(); })
+      .catch(() => { myEmail = ''; });
+  });
   const usable = !!(vault.managed && vault.supabaseUrl);
 
   let keyInput = $state('');
@@ -245,6 +256,10 @@
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
               <span class="truncate font-medium text-ink-900">{m.email ?? m.id}</span>
+              {#if myEmail && m.email && m.email.toLowerCase() === myEmail}
+                <span class="rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                      style="background: var(--accent-alpha-10); color: var(--accent-electric);">you</span>
+              {/if}
               {#if banned}
                 <span class="rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
                       style="background: var(--state-danger); color: white;">banned</span>

@@ -12,6 +12,31 @@
   import { checkSupabaseConn, connCheckMessage, normalizeSupabaseUrl, normalizeSupabaseKey } from '$lib/data/repo/validate';
   import { unifiedEnabled, setUnifiedEnabled, foreignReadableVaults } from '$lib/data/repo/crossVault';
   import { activeBackend, auth, type BackendId } from '$lib/data/repo';
+  import { changeOwnPassword } from '$lib/data/repo/vaultAccount';
+
+  // A member changing their OWN password (no admin key). Shown for the active
+  // managed vault — the temp password an admin issues is meant to be replaced.
+  let pwOpen = $state(false);
+  let pwValue = $state('');
+  let pwBusy = $state(false);
+  let pwError = $state('');
+  let pwDone = $state(false);
+  async function submitPassword() {
+    if (pwBusy || pwValue.length < 8) return;
+    pwBusy = true;
+    pwError = '';
+    pwDone = false;
+    try {
+      await changeOwnPassword(pwValue);
+      pwValue = '';
+      pwDone = true;
+      pwOpen = false;
+    } catch (e) {
+      pwError = e instanceof Error ? e.message : String(e);
+    } finally {
+      pwBusy = false;
+    }
+  }
 
   // Managed vault: end the member session. The guard then routes to
   // /vault-login on the next navigation.
@@ -180,6 +205,10 @@
              style="background: var(--accent-electric); color: var(--accent-text);">
             Members
           </a>
+          <button type="button" onclick={() => { pwOpen = !pwOpen; pwError = ''; pwDone = false; }}
+                  class="shrink-0 rounded-[10px] border border-surface-border px-3 py-1.5 text-xs font-medium text-ink-500 hover:bg-surface-hover">
+            Password
+          </button>
           <button type="button" onclick={signOutVault} disabled={signingOut}
                   class="shrink-0 rounded-[10px] border border-surface-border px-3 py-1.5 text-xs font-medium text-ink-500 hover:bg-surface-hover">
             {signingOut ? 'Signing out…' : 'Sign out'}
@@ -213,6 +242,27 @@
     Removing a vault only forgets the connection on this device — no data is deleted. A local
     vault's rows stay in this app's storage; a server vault's rows stay on its server.
   </p>
+
+  {#if pwOpen}
+    <form class="card space-y-3 p-4" onsubmit={(e) => { e.preventDefault(); submitPassword(); }}>
+      <div class="font-display text-[10px] uppercase tracking-wider text-ink-400">Change your password</div>
+      <p class="text-xs text-ink-500">Sets a new password for your account on this team vault. Use at least 8 characters.</p>
+      <input type="password" class="input w-full" placeholder="New password" autocomplete="new-password"
+             bind:value={pwValue} />
+      {#if pwError}<p class="text-xs" style="color: var(--state-danger);">{pwError}</p>{/if}
+      <div class="flex items-center gap-3">
+        <button type="submit" disabled={pwBusy || pwValue.length < 8}
+                class="px-5 py-2 font-display text-sm font-medium"
+                style={`background: var(--accent-electric); color: var(--accent-text); border-radius: var(--radius-md); opacity: ${pwBusy || pwValue.length < 8 ? 0.4 : 1};`}>
+          {pwBusy ? 'Saving…' : 'Save password'}
+        </button>
+        <button type="button" class="text-sm text-ink-500 hover:text-ink-900" onclick={() => (pwOpen = false)}>Cancel</button>
+      </div>
+    </form>
+  {/if}
+  {#if pwDone}
+    <p class="px-1 text-xs" style="color: var(--state-success, #16a34a);">Password changed. Use it next time you sign in.</p>
+  {/if}
 
   <!-- Join / create ─────────────────────────────────────────────────── -->
   {#if !adding}

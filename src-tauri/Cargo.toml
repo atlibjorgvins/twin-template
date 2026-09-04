@@ -4,7 +4,7 @@
 # `npm run dmg` builds the installer.
 [package]
 name = "twin-desktop"
-version = "1.5.1"
+version = "1.6.0"
 description = "Twin — a personal contact system"
 edition = "2021"
 
