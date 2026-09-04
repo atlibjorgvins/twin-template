@@ -21,7 +21,7 @@
   import { upsertOrgSocial } from '$lib/orgSocial';
   import VaultPicker from '$lib/VaultPicker.svelte';
   import { createInVault, canCreateInto } from '$lib/data/repo/crossVault';
-  import { activeVault, vaultForScope, vaults } from '$lib/data/repo/vaults';
+  import { activeVault, defaultVaultForScope, vaults } from '$lib/data/repo/vaults';
   import {
     createNote,
     createPerson,
@@ -288,7 +288,7 @@
   let newPersonDone = $state('');
   $effect(() => {
     const s = newPersonScope;
-    const bound = s === 'work' || s === 'private' ? vaultForScope(s) : null;
+    const bound = s === 'work' || s === 'private' ? defaultVaultForScope(s) : null;
     newPersonVault = bound && canCreateInto(bound) ? bound.id : activeVault().id;
   });
   async function submitNewPerson() {
@@ -386,7 +386,7 @@
   let newOrgDone = $state('');
   $effect(() => {
     const s = newOrgScope;
-    const bound = s === 'work' || s === 'private' ? vaultForScope(s) : null;
+    const bound = s === 'work' || s === 'private' ? defaultVaultForScope(s) : null;
     newOrgVault = bound && canCreateInto(bound) ? bound.id : activeVault().id;
   });
   async function submitNewOrg() {
