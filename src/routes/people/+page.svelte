@@ -29,6 +29,9 @@
   import { COUNTRIES, DEFAULT_COUNTRY, toE164, parsePhone, type CountryCode } from '$lib/phone';
   import { scope, scopeWhere } from '$lib/scope';
   import type { Filter } from '$lib/data/repo';
+  import VaultPicker from '$lib/VaultPicker.svelte';
+  import { createInVault, canCreateInto } from '$lib/data/repo/crossVault';
+  import { activeVault, vaultForScope, vaults } from '$lib/data/repo/vaults';
   import { goto } from '$app/navigation';
   import Icon from '$lib/Icon.svelte';
   import Avatar from '$lib/Avatar.svelte';
@@ -44,6 +47,16 @@
   let newScope = $state<'work' | 'private' | 'both'>('work');
   let creating = $state(false);
   let newError = $state('');
+  let newDone = $state('');
+  // Destination vault follows the scope tag (a scope bound to a vault in
+  // Settings → Vaults pulls new records of that scope there by default);
+  // the picker below still lets the person override per record.
+  let newVault = $state(activeVault().id);
+  $effect(() => {
+    const s = newScope;
+    const bound = s === 'work' || s === 'private' ? vaultForScope(s) : null;
+    newVault = bound && canCreateInto(bound) ? bound.id : activeVault().id;
+  });
 
   function openNew() {
     newOpen = true;
@@ -53,6 +66,7 @@
     newPhoneCountry = DEFAULT_COUNTRY;
     newScope = $scope === 'private' ? 'private' : 'work';
     newError = '';
+    newDone = '';
   }
 
   async function submitNew() {
@@ -69,12 +83,24 @@
             ? parsePhone(phoneRaw, newPhoneCountry).e164
             : toE164(newPhoneCountry, phoneRaw))
         : null;
-      const created = await createPerson({
+      const data = {
         full_name: name,
         email: newEmail.trim() || null,
         phone: phoneE164,
         scope: newScope
-      });
+      };
+      if (newVault !== activeVault().id) {
+        // Saved into ANOTHER vault — its detail page doesn't exist here, so
+        // stay put and say where it went instead of navigating into a 404.
+        await createInVault(newVault, 'Person', { status: 'published', ...data });
+        const dest = vaults().find((v) => v.id === newVault);
+        newDone = `Saved ${name} to “${dest?.name ?? 'the other vault'}”.`;
+        newName = '';
+        newEmail = '';
+        newPhone = '';
+        return;
+      }
+      const created = await createPerson(data);
       goto(`/people/${created.id}`);
     } catch (e) {
       newError = e instanceof Error ? e.message : String(e);
@@ -655,8 +681,10 @@
             <option value="both">Both</option>
           </select>
         </label>
+        <VaultPicker bind:value={newVault} />
       </div>
       {#if newError}<div class="text-xs text-tag-salesText">{newError}</div>{/if}
+      {#if newDone}<div class="text-xs" style="color: var(--state-success, #16a34a);">{newDone}</div>{/if}
       <div class="flex items-center justify-end gap-2">
         <button class="btn-ghost" onclick={() => (newOpen = false)} disabled={creating}>Cancel</button>
         <button class="btn-primary" onclick={submitNew} disabled={creating || !newName.trim()}>

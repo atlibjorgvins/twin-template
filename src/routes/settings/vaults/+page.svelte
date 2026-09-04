@@ -7,7 +7,7 @@
   import SettingsSubpageHeader from '$lib/admin/SettingsSubpageHeader.svelte';
   import Icon from '$lib/Icon.svelte';
   import StorageChooser from '$lib/StorageChooser.svelte';
-  import { vaults, activeVault, setActiveVault, addVault, removeVault, type Vault } from '$lib/data/repo/vaults';
+  import { vaults, activeVault, setActiveVault, addVault, removeVault, bindVaultScope, type Vault } from '$lib/data/repo/vaults';
   import { checkSupabaseConn, connCheckMessage, normalizeSupabaseUrl, normalizeSupabaseKey } from '$lib/data/repo/validate';
   import { activeBackend, auth, type BackendId } from '$lib/data/repo';
 
@@ -48,6 +48,15 @@
   function doRemove(id: string) {
     if (removeVault(id)) all = vaults();
     confirmRemove = null;
+  }
+
+  // Bind a vault to one side of the Work/Private toggle: clicking that side
+  // in the top bar then OPENS this vault, and new records tagged with that
+  // scope default here. Exclusive per side (bindVaultScope unbinds the
+  // previous holder), so re-read the whole list after every change.
+  function setBinding(id: string, value: string) {
+    bindVaultScope(id, value === 'work' || value === 'private' ? value : undefined);
+    all = vaults();
   }
 
   // ── Add a vault ──────────────────────────────────────────────────────────
@@ -140,6 +149,15 @@
             {backendLabel(v)}{#if v.directusUrl} · {v.directusUrl}{:else if v.supabaseUrl} · {v.supabaseUrl}{/if}
           </div>
         </div>
+        <label class="flex shrink-0 items-center gap-1.5 text-[11px] text-ink-400" title="Bind this vault to one side of the Work/Private toggle — clicking that side opens this vault">
+          <span class="hidden sm:inline">Opens on</span>
+          <select class="input px-2 py-1 text-xs" value={v.boundScope ?? ''}
+                  onchange={(e) => setBinding(v.id, (e.currentTarget as HTMLSelectElement).value)}>
+            <option value="">—</option>
+            <option value="work">Work</option>
+            <option value="private">Private</option>
+          </select>
+        </label>
         {#if isActive && v.managed}
           <a href="/settings/vaults/members"
              class="shrink-0 rounded-[10px] px-3 py-1.5 text-xs font-medium"

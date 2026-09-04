@@ -42,6 +42,11 @@ export interface Vault {
    *  Settings → Vaults → Members. Unlocks in-app member administration on
    *  THIS device; never synced, never sent anywhere but the project itself. */
   adminKey?: string;
+  /** Bind this vault to one side of the Work/Private toggle. Clicking that
+   *  side then OPENS this vault (full reload), and new records tagged with
+   *  that scope default their destination here. At most one vault per side —
+   *  bindVaultScope() enforces it. */
+  boundScope?: 'work' | 'private';
 }
 
 const VAULTS_KEY = 'twin.vaults';
@@ -177,6 +182,29 @@ export function removeVault(id: string): boolean {
   _vaults = all.filter((v) => v.id !== id);
   persist();
   return true;
+}
+
+/** The vault bound to one side of the Work/Private toggle, if any. */
+export function vaultForScope(s: 'work' | 'private'): Vault | null {
+  return vaults().find((v) => v.boundScope === s) ?? null;
+}
+
+/** Bind a vault to a toggle side (or unbind with undefined). Exclusive per
+ *  side: binding KLAK to 'work' unbinds whoever held 'work' before —
+ *  "clicking Work" must have exactly one answer. */
+export function bindVaultScope(id: string, scope: 'work' | 'private' | undefined): void {
+  _vaults = vaults().map((v) => {
+    if (v.id === id) {
+      const { boundScope: _drop, ...rest } = v;
+      return scope ? { ...rest, boundScope: scope } : rest;
+    }
+    if (scope && v.boundScope === scope) {
+      const { boundScope: _drop, ...rest } = v;
+      return rest;
+    }
+    return v;
+  });
+  persist();
 }
 
 /** Per-vault IndexedDB names. The primary vault keeps the LEGACY names so a

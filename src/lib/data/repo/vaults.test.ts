@@ -1,6 +1,33 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseVaults, migrateFlat, localDbName, localMediaDbName, PRIMARY_ID } from './vaults.ts';
+import {
+  parseVaults, migrateFlat, localDbName, localMediaDbName, PRIMARY_ID,
+  vaults, addVault, bindVaultScope, vaultForScope
+} from './vaults.ts';
+
+test('scope bindings are exclusive per side and unbindable', () => {
+  // No localStorage in node: vaults() runs purely in memory, seeded with the
+  // migrated primary — good enough to exercise the binding rules.
+  const primary = vaults()[0];
+  const klak = addVault({ name: 'KLAK', kind: 'workspace', backend: 'supabase' });
+  const side = addVault({ name: 'Side', kind: 'workspace', backend: 'local' });
+
+  bindVaultScope(klak.id, 'work');
+  bindVaultScope(primary.id, 'private');
+  assert.equal(vaultForScope('work')?.id, klak.id);
+  assert.equal(vaultForScope('private')?.id, primary.id);
+
+  // Re-binding 'work' to another vault must strip it from KLAK — a click on
+  // Work needs exactly one answer.
+  bindVaultScope(side.id, 'work');
+  assert.equal(vaultForScope('work')?.id, side.id);
+  assert.equal(vaults().find((v) => v.id === klak.id)?.boundScope, undefined);
+
+  // Unbind.
+  bindVaultScope(side.id, undefined);
+  assert.equal(vaultForScope('work'), null);
+  assert.equal(vaultForScope('private')?.id, primary.id, 'other side untouched');
+});
 
 test('parseVaults drops garbage and keeps well-formed vaults', () => {
   assert.deepEqual(parseVaults('not json'), []);

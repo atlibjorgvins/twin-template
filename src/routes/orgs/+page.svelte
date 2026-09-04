@@ -24,6 +24,9 @@
   } from '$lib/directus';
   import ProjectFilterTree from '$lib/admin/ProjectFilterTree.svelte';
   import { scope, scopeWhere } from '$lib/scope';
+  import VaultPicker from '$lib/VaultPicker.svelte';
+  import { createInVault, canCreateInto } from '$lib/data/repo/crossVault';
+  import { activeVault, vaultForScope, vaults } from '$lib/data/repo/vaults';
   import type { Filter } from '$lib/data/repo';
   import { goto } from '$app/navigation';
   import Icon from '$lib/Icon.svelte';
@@ -52,6 +55,16 @@
   let newScope = $state<'work' | 'private' | 'both'>('work');
   let creating = $state(false);
   let newError = $state('');
+  let newDone = $state('');
+  // Destination vault follows the scope tag (a scope bound to a vault in
+  // Settings → Vaults pulls new records of that scope there by default);
+  // the picker in the form still overrides per record.
+  let newVault = $state(activeVault().id);
+  $effect(() => {
+    const s = newScope;
+    const bound = s === 'work' || s === 'private' ? vaultForScope(s) : null;
+    newVault = bound && canCreateInto(bound) ? bound.id : activeVault().id;
+  });
 
   function openNew() {
     newOpen = true;
@@ -60,6 +73,7 @@
     newIndustry = '';
     newScope = $scope === 'private' ? 'private' : 'work';
     newError = '';
+    newDone = '';
   }
 
   async function submitNew() {
@@ -67,13 +81,25 @@
     if (!name) { newError = 'Name is required'; return; }
     creating = true;
     newError = '';
+    newDone = '';
     try {
-      const created = await createOrg({
+      const data = {
         name,
         website: newWebsite.trim() || null,
         industry: newIndustry.trim() || null,
         scope: newScope
-      });
+      };
+      if (newVault !== activeVault().id) {
+        // Saved into ANOTHER vault — no detail page here to navigate to.
+        await createInVault(newVault, 'organization', { status: 'active', ...data });
+        const dest = vaults().find((v) => v.id === newVault);
+        newDone = `Saved ${name} to “${dest?.name ?? 'the other vault'}”.`;
+        newName = '';
+        newWebsite = '';
+        newIndustry = '';
+        return;
+      }
+      const created = await createOrg(data);
       goto(`/orgs/${created.id}`);
     } catch (e) {
       newError = e instanceof Error ? e.message : String(e);
@@ -603,8 +629,10 @@
             <option value="both">Both</option>
           </select>
         </label>
+        <div class="sm:col-span-2"><VaultPicker bind:value={newVault} /></div>
       </div>
       {#if newError}<div class="text-xs text-tag-salesText">{newError}</div>{/if}
+      {#if newDone}<div class="text-xs" style="color: var(--state-success, #16a34a);">{newDone}</div>{/if}
       <div class="flex items-center justify-end gap-2">
         <button class="btn-ghost" onclick={() => (newOpen = false)} disabled={creating}>Cancel</button>
         <button class="btn-primary" onclick={submitNew} disabled={creating || !newName.trim()}>

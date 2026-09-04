@@ -19,6 +19,9 @@
   import Avatar from '$lib/Avatar.svelte';
   import Icon from '$lib/Icon.svelte';
   import { upsertOrgSocial } from '$lib/orgSocial';
+  import VaultPicker from '$lib/VaultPicker.svelte';
+  import { createInVault, canCreateInto } from '$lib/data/repo/crossVault';
+  import { activeVault, vaultForScope, vaults } from '$lib/data/repo/vaults';
   import {
     createNote,
     createPerson,
@@ -278,26 +281,51 @@
   let newPersonScope = $state<'work' | 'private' | 'both'>('work');
   let newPersonBusy = $state(false);
   let newPersonError = $state('');
+  // Destination vault. Follows the scope field: tagging the person 'work'
+  // defaults to the vault bound to Work (Settings → Vaults), which is the
+  // whole point of the binding — a manual pick below still wins afterwards.
+  let newPersonVault = $state(activeVault().id);
+  let newPersonDone = $state('');
+  $effect(() => {
+    const s = newPersonScope;
+    const bound = s === 'work' || s === 'private' ? vaultForScope(s) : null;
+    newPersonVault = bound && canCreateInto(bound) ? bound.id : activeVault().id;
+  });
   async function submitNewPerson() {
     const full_name = newPersonName.trim();
     if (!full_name || newPersonBusy) return;
     newPersonBusy = true;
     newPersonError = '';
+    newPersonDone = '';
     try {
-      const created = await createPerson({
+      const data = {
         full_name,
         email: newPersonEmail.trim() || null,
         phone: newPersonPhone.trim() || null,
         Linkedin: newPersonLinkedin.trim() || null,
         scope: newPersonScope
-      } as Partial<Person>);
+      } as Partial<Person>;
+      const crossVault = newPersonVault !== activeVault().id;
+      const created = crossVault
+        ? await createInVault<Person>(newPersonVault, 'Person', {
+            status: 'published',
+            ...data
+          } as Record<string, unknown>)
+        : await createPerson(data);
       newPersonName = '';
       newPersonEmail = '';
       newPersonPhone = '';
       newPersonLinkedin = '';
       newPersonScope = 'work';
-      closeSheet();
-      goto(`/people/${created.id}`);
+      if (crossVault) {
+        // The record lives in ANOTHER vault — its /people/:id doesn't exist
+        // here, so no navigation; say where it went instead.
+        const dest = vaults().find((v) => v.id === newPersonVault);
+        newPersonDone = `Saved ${created.full_name ?? full_name} to “${dest?.name ?? 'the other vault'}”.`;
+      } else {
+        closeSheet();
+        goto(`/people/${created.id}`);
+      }
     } catch (e) {
       newPersonError = formatError(e);
     } finally {
@@ -353,25 +381,49 @@
   let newOrgScope = $state<'work' | 'private' | 'both'>('work');
   let newOrgBusy = $state(false);
   let newOrgError = $state('');
+  // Same scope-follows-binding default as the person sheet.
+  let newOrgVault = $state(activeVault().id);
+  let newOrgDone = $state('');
+  $effect(() => {
+    const s = newOrgScope;
+    const bound = s === 'work' || s === 'private' ? vaultForScope(s) : null;
+    newOrgVault = bound && canCreateInto(bound) ? bound.id : activeVault().id;
+  });
   async function submitNewOrg() {
     const name = newOrgName.trim();
     if (!name || newOrgBusy) return;
     newOrgBusy = true;
     newOrgError = '';
+    newOrgDone = '';
+    const orgCrossVault = newOrgVault !== activeVault().id;
     try {
-      const created = await createOrg({
+      const data = {
         name,
         website: newOrgWebsite.trim() || null,
         industry: newOrgIndustry.trim() || null,
         email: newOrgEmail.trim() || null,
         phone: newOrgPhone.trim() || null,
         scope: newOrgScope
-      } as Partial<Organization>);
+      } as Partial<Organization>;
+      const created = orgCrossVault
+        ? await createInVault<Organization>(newOrgVault, 'organization', {
+            status: 'active',
+            ...data
+          } as Record<string, unknown>)
+        : await createOrg(data);
       // LinkedIn is a social row now, not a column on the org. Written after
       // creation because the row needs the new id, and non-fatal: a failure
-      // here must not lose the organization you just typed.
+      // here must not lose the organization you just typed. Cross-vault, the
+      // row must land in the SAME vault as the org it references.
       if (newOrgLinkedin.trim()) {
-        await upsertOrgSocial(created.id, 'linkedin', newOrgLinkedin).catch(() => undefined);
+        const writeSocial = orgCrossVault
+          ? createInVault(newOrgVault, 'organization_social', {
+              organization_id: created.id,
+              platform: 'linkedin',
+              url: newOrgLinkedin.trim()
+            })
+          : upsertOrgSocial(created.id, 'linkedin', newOrgLinkedin);
+        await writeSocial.catch(() => undefined);
       }
       newOrgName = '';
       newOrgWebsite = '';
@@ -380,8 +432,13 @@
       newOrgPhone = '';
       newOrgLinkedin = '';
       newOrgScope = 'work';
-      closeSheet();
-      goto(`/orgs/${created.id}`);
+      if (orgCrossVault) {
+        const dest = vaults().find((v) => v.id === newOrgVault);
+        newOrgDone = `Saved ${created.name ?? name} to “${dest?.name ?? 'the other vault'}”.`;
+      } else {
+        closeSheet();
+        goto(`/orgs/${created.id}`);
+      }
     } catch (e) {
       newOrgError = formatError(e);
     } finally {
@@ -710,10 +767,12 @@
         <option value="both">Both</option>
       </select>
     </label>
+    <VaultPicker bind:value={newPersonVault} />
   </div>
 
   {#snippet footer()}
     {#if newPersonError}<div class="mb-2 text-xs text-tag-salesText">{newPersonError}</div>{/if}
+    {#if newPersonDone}<div class="mb-2 text-xs" style="color: var(--state-success, #16a34a);">{newPersonDone}</div>{/if}
     <div class="flex justify-end">
       <button class="btn-primary" onclick={submitNewPerson} disabled={newPersonBusy || !newPersonName.trim()}>
         <Icon name="plus" size={14} />
@@ -764,10 +823,12 @@
         <option value="both">Both</option>
       </select>
     </label>
+    <VaultPicker bind:value={newOrgVault} />
   </div>
 
   {#snippet footer()}
     {#if newOrgError}<div class="mb-2 text-xs text-tag-salesText">{newOrgError}</div>{/if}
+    {#if newOrgDone}<div class="mb-2 text-xs" style="color: var(--state-success, #16a34a);">{newOrgDone}</div>{/if}
     <div class="flex justify-end">
       <button class="btn-primary" onclick={submitNewOrg} disabled={newOrgBusy || !newOrgName.trim()}>
         <Icon name="plus" size={14} />
