@@ -19,6 +19,7 @@
     type MediaLocation
   } from '$lib/data/repo';
   import { checkSupabaseConn, connCheckMessage } from '$lib/data/repo/validate';
+  import { driveClientId, setDriveClientId, driveConnected, connectDrive } from '$lib/data/repo/driveMedia';
   import { localFileStore } from '$lib/data/repo/files';
   import { activeVault } from '$lib/data/repo/vaults';
   import { connection } from '$lib/offline';
@@ -104,6 +105,26 @@
     if (mediaPick === mediaLocation()) return;
     saveMediaLocation(mediaPick);
     window.location.href = '/settings/storage'; // repo singleton — full reload
+  }
+
+  // ── Google Drive connect ────────────────────────────────────────────────
+  let driveClientIdValue = $state(driveClientId());
+  let driveIsConnected = $state(driveConnected());
+  let driveBusy = $state(false);
+  let driveError = $state('');
+  async function connectDriveNow() {
+    if (driveBusy || !driveClientIdValue.trim()) return;
+    driveBusy = true;
+    driveError = '';
+    try {
+      setDriveClientId(driveClientIdValue.trim());
+      await connectDrive();
+      driveIsConnected = driveConnected();
+    } catch (e) {
+      driveError = e instanceof Error ? e.message : String(e);
+    } finally {
+      driveBusy = false;
+    }
   }
 
   // ── Import (local vault, empty only — ids are preserved as-is) ───────────
@@ -243,13 +264,50 @@
             initials instead of these images. Images already in your database keep rendering.
           </span>
         </button>
+        <button type="button" role="radio" aria-checked={mediaPick === 'drive'}
+                class="block w-full p-3 text-left transition"
+                style={`border: 1px solid ${mediaPick === 'drive' ? 'var(--accent-electric)' : 'var(--border-subtle)'}; border-radius: var(--radius-md); background: ${mediaPick === 'drive' ? 'var(--accent-alpha-10)' : 'transparent'};`}
+                onclick={() => (mediaPick = 'drive')}>
+          <span class="font-display font-medium">Google Drive <span class="text-[10px] uppercase tracking-wider text-ink-400">your Drive</span></span>
+          <span class="mt-1 block text-xs text-ink-500">
+            Images live in a “Twin” folder in your own Google Drive — off your database, synced
+            to every device you connect. twin only ever sees files it created (drive.file scope).
+          </span>
+        </button>
       </div>
+
+      {#if mediaPick === 'drive'}
+        <div class="rounded-[10px] border border-surface-border p-3 space-y-2" style="background: var(--bg-secondary);">
+          <label class="block">
+            <span class="mb-1 block text-xs text-ink-400">Google OAuth client ID</span>
+            <input type="text" class="input w-full font-mono text-xs" placeholder="…apps.googleusercontent.com"
+                   bind:value={driveClientIdValue} />
+          </label>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick={connectDriveNow} disabled={driveBusy || !driveClientIdValue.trim()}
+                    class="rounded-[10px] px-3 py-1.5 text-xs font-medium"
+                    style={`background: var(--accent-electric); color: var(--accent-text); opacity: ${driveBusy || !driveClientIdValue.trim() ? 0.5 : 1};`}>
+              {driveBusy ? 'Connecting…' : driveIsConnected ? 'Reconnect' : 'Connect Google Drive'}
+            </button>
+            {#if driveIsConnected}<span class="text-xs" style="color: var(--state-success, #16a34a);">Connected ✓</span>{/if}
+          </div>
+          {#if driveError}<p class="text-xs" style="color: var(--state-danger);">{driveError}</p>{/if}
+          <p class="text-[11px] text-ink-400">
+            One-time Google setup (create the OAuth client, enable the Drive API) is in
+            <span class="font-mono">docs/google-drive-media.md</span>. The client ID is public config, not a secret.
+          </p>
+        </div>
+      {/if}
+
       <div>
-        <button type="button" onclick={applyMedia} disabled={mediaPick === mediaLocation()}
+        <button type="button" onclick={applyMedia} disabled={mediaPick === mediaLocation() || (mediaPick === 'drive' && !driveIsConnected)}
                 class="px-5 py-2 font-display text-sm font-medium transition"
-                style={`background: var(--accent-electric); color: var(--accent-text); border-radius: var(--radius-md); opacity: ${mediaPick === mediaLocation() ? 0.4 : 1};`}>
+                style={`background: var(--accent-electric); color: var(--accent-text); border-radius: var(--radius-md); opacity: ${mediaPick === mediaLocation() || (mediaPick === 'drive' && !driveIsConnected) ? 0.4 : 1};`}>
           Apply
         </button>
+        {#if mediaPick === 'drive' && !driveIsConnected}
+          <span class="ml-2 text-xs text-ink-400">Connect Drive first.</span>
+        {/if}
       </div>
     </fieldset>
   {/if}

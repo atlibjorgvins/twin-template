@@ -23,6 +23,7 @@ import { env } from '$env/dynamic/public';
 import { resolveBackend, type BackendId, type StoredChoice } from './choice';
 import { saveDirectusConnection, deviceDirectusUrl } from './directusConfig';
 import { localFileStore } from './files';
+import { driveFileStore } from './driveMedia';
 import { activeVault, updateActiveVault, localDbName, localMediaDbName } from './vaults';
 import { normalizeSupabaseUrl, normalizeSupabaseKey } from './validate';
 import { directusAbsolute } from '$lib/apiBase';
@@ -112,13 +113,14 @@ export function probeUrl(): string | null {
 // media does not follow you to other devices — those show initials instead.
 const MEDIA_KEY = 'twin.mediaLocation';
 
-export type MediaLocation = 'backend' | 'device';
+export type MediaLocation = 'backend' | 'device' | 'drive';
 
 export function mediaLocation(): MediaLocation {
   try {
     const stored = localStorage.getItem(MEDIA_KEY);
     if (stored === 'device') return 'device';
     if (stored === 'backend') return 'backend';
+    if (stored === 'drive') return 'drive';
     // Unset: per-backend default. Supabase has no file transport wired up
     // (Storage buckets are the follow-up), so its images default to the
     // device store — uploads and avatars just work instead of refusing.
@@ -127,6 +129,16 @@ export function mediaLocation(): MediaLocation {
     return 'backend';
   }
 }
+
+/** Both media planes that render through the device cache — the local blob
+ *  store and the Drive store (which caches into a local blob store). Selected
+ *  by mediaLocation so uploads, reads and hydrate all use the same one. */
+type CachedMediaStore = {
+  put(file: Blob, meta?: { title?: string; id?: string }): Promise<string>;
+  srcSync(id: string): string;
+  hydrate(): Promise<void>;
+  remove(id: string): Promise<void>;
+};
 
 /** Persist the media-location choice; the caller reloads (same singleton
  *  rule as the backend choice). */
@@ -141,6 +153,17 @@ export function saveMediaLocation(v: MediaLocation): void {
 }
 
 const deviceMedia = () => localFileStore(localMediaDbName(browser ? activeVault().id : 'primary'));
+
+// The media store the FILE plane should use: Drive when chosen (durable in
+// the user's Drive, cached locally for synchronous reads), else the device
+// blob store. Drive falls back to the plain device store when it isn't
+// connected yet, so a half-set-up 'drive' choice never strands uploads.
+function mediaStore(): CachedMediaStore {
+  if (browser && mediaLocation() === 'drive') {
+    return driveFileStore(localMediaDbName(activeVault().id));
+  }
+  return deviceMedia();
+}
 
 // ── The lazy adapter ──────────────────────────────────────────────────
 // Loaded once per page load, on first use. Only the chosen backend's module
@@ -171,10 +194,12 @@ function load(): Promise<Loaded> {
         const { DirectusRepository, DirectusAuthProvider } = await import('./directus');
         made = { repo: new DirectusRepository(), auth: new DirectusAuthProvider() };
       }
-      if (browser && mediaLocation() === 'device') {
-        // Route the FILE plane to the device blob store (reads fall back to
-        // the backend in assetSrc below; uploads/removals go local-first).
-        const files = deviceMedia();
+      if (browser && (mediaLocation() === 'device' || mediaLocation() === 'drive')) {
+        // Route the FILE plane to the chosen cached store — the device blob
+        // store, or Google Drive (which caches locally for synchronous reads).
+        // Reads fall back to the backend in assetSrc below; uploads/removals
+        // go through the store.
+        const files = mediaStore();
         const inner = made.repo;
         made = {
           auth: made.auth,
@@ -224,10 +249,11 @@ function facadeAssetSrc(
   params: Record<string, string | number> = {}
 ): string {
   if (!fileId) return '';
-  if (browser && (resolved.backend === 'local' || mediaLocation() === 'device')) {
-    const local = deviceMedia().srcSync(String(fileId));
+  if (browser && (resolved.backend === 'local' || mediaLocation() === 'device' || mediaLocation() === 'drive')) {
+    const local = mediaStore().srcSync(String(fileId));
     if (local) return local;
-    if (resolved.backend === 'local') return '';
+    // Local backend and Drive have no other URL scheme to fall back to.
+    if (resolved.backend === 'local' || mediaLocation() === 'drive') return '';
   }
   if (resolved.backend === 'directus') {
     const query = new URLSearchParams({ ...params, ...assetAuthParam() } as Record<string, string>);
@@ -271,8 +297,11 @@ export const auth: AuthProvider = {
  *  No-op when no device media is in play. */
 export function mediaReady(): Promise<void> {
   if (!browser) return Promise.resolve();
-  if (resolved.backend === 'local' || mediaLocation() === 'device') {
-    return deviceMedia()
+  if (resolved.backend === 'local' || mediaLocation() === 'device' || mediaLocation() === 'drive') {
+    // Drive's hydrate also pulls the folder into the local cache in the
+    // background; awaiting it blocks first paint no longer than the local
+    // cache read, then fills in as downloads complete.
+    return mediaStore()
       .hydrate()
       .catch(() => {});
   }
