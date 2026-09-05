@@ -2,6 +2,13 @@
   import Icon from '$lib/Icon.svelte';
   import { COUNTRIES, DEFAULT_COUNTRY, parsePhone, toE164, formatPhone, type CountryCode } from '$lib/phone';
   import { formatError } from '$lib/directus';
+  import { canWrite } from '$lib/data/repo/vaultRole';
+
+  // A viewer (managed vault) can't edit anything — fold that into `disabled`
+  // so every EditableField across the app is read-only with no call-site
+  // change. The DB (RLS) refuses the write regardless; this hides the pencil,
+  // blocks double-click-to-edit, and makes the empty state non-interactive.
+  const roleReadOnly = !canWrite();
 
   type InputType = 'text' | 'email' | 'tel' | 'url' | 'date' | 'select' | 'phone';
 
@@ -39,6 +46,9 @@
     href?: string | ((value: string) => string);
     onSave: (next: string | null) => Promise<void> | void;
   } = $props();
+
+  // Effective disabled = caller's disabled OR the viewer role.
+  const isDisabled = $derived(disabled || roleReadOnly);
 
   /** Resolve the href prop to a string for the current value, or '' if N/A. */
   const resolvedHref = $derived.by(() => {
@@ -105,7 +115,7 @@
   }
 
   function begin() {
-    if (disabled) return;
+    if (isDisabled) return;
     if (type === 'phone') {
       const parsed = parsePhone(value ?? '', DEFAULT_COUNTRY);
       phoneCountry = parsed.country;
@@ -328,7 +338,7 @@
         ondblclick={begin}
       >{display}</span>
     {/if}
-    {#if !disabled}
+    {#if !isDisabled}
       <button
         type="button"
         onclick={begin}
@@ -348,10 +358,10 @@
     onclick={begin}
     title={tooltip}
     class="group flex w-full min-w-0 max-w-full items-center sm:justify-end gap-1.5 rounded-md px-1.5 py-0.5 text-left sm:text-right text-ink-300 hover:bg-surface-hover disabled:cursor-default disabled:hover:bg-transparent"
-    disabled={disabled}
+    disabled={isDisabled}
   >
     <span class="block min-w-0 flex-1 truncate text-left sm:text-right">{placeholder}</span>
-    {#if !disabled}
+    {#if !isDisabled}
       <Icon name="sparkles" size={11} class="shrink-0 opacity-50 group-hover:opacity-100" />
     {/if}
   </button>

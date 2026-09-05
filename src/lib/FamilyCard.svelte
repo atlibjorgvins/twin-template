@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '$lib/Icon.svelte';
+  import { canWrite } from '$lib/data/repo/vaultRole';
   import Avatar from '$lib/Avatar.svelte';
   import TagPill from '$lib/TagPill.svelte';
   import FamilyTree from '$lib/FamilyTree.svelte';
@@ -63,6 +64,7 @@
 
   // --- Add relation flow ---
   let adding = $state(false);
+  const writeAllowed = canWrite();
   let query = $state('');
   let results = $state<Person[]>([]);
   let picked = $state<Person | null>(null);
@@ -294,11 +296,13 @@
           aria-selected={view === 'tree'} role="tab"
         >Tree</button>
       </div>
-      <button
-        class="inline-flex items-center gap-1 rounded-full border border-surface-border bg-surface-card px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-surface-hover"
-        aria-label="Add family relation"
-        onclick={openAdd}
-      ><Icon name="plus" size={14} /> Add</button>
+      {#if writeAllowed}
+        <button
+          class="inline-flex items-center gap-1 rounded-full border border-surface-border bg-surface-card px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-surface-hover"
+          aria-label="Add family relation"
+          onclick={openAdd}
+        ><Icon name="plus" size={14} /> Add</button>
+      {/if}
     </div>
   </div>
 

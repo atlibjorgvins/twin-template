@@ -25,6 +25,11 @@
     type ActivityKind
   } from '$lib/directus';
   import { scope } from '$lib/scope';
+  import { canWrite } from '$lib/data/repo/vaultRole';
+
+  // Logging an interaction is a write — a viewer (managed vault) doesn't see
+  // the composer at all (RLS would refuse it anyway).
+  const writeAllowed = canWrite();
 
   // New interactions inherit the active Work/Private mode (unless the kind
   // pins its own scope). 'all' means untagged.
@@ -268,6 +273,7 @@
   }
 </script>
 
+{#if writeAllowed}
 <div
   class="quick-log-chips"
   style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);"
@@ -394,3 +400,4 @@
     >{error || locError}</div>
   {/if}
 </div>
+{/if}

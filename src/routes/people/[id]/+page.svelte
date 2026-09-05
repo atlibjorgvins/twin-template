@@ -9,6 +9,12 @@
   import EditableField from '$lib/EditableField.svelte';
   import RolesCard from '$lib/RolesCard.svelte';
   import RecordHistory from '$lib/RecordHistory.svelte';
+  import { canWrite } from '$lib/data/repo/vaultRole';
+
+  // Viewer (managed vault) → hide write affordances the shared cards don't
+  // own (the header edit toggle, the facet-add row, family-add). RLS is the
+  // real guard; this keeps the page from offering actions that would fail.
+  const writeAllowed = canWrite();
   import FamilyCard from '$lib/FamilyCard.svelte';
   import { featureOn } from '$lib/instance';
   import PersonProjectsCard from '$lib/PersonProjectsCard.svelte';
@@ -303,6 +309,7 @@
          top-right of the hero. Pops the contact card open into Edit
          mode where the admin actions (Publish/Archive/Directus) and
          empty rows are revealed. -->
+    {#if writeAllowed}
     <button
       type="button"
       class="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-400 hover:bg-surface-hover hover:text-ink-900 {editing ? 'bg-brand text-white hover:bg-brand hover:text-white' : ''}"
@@ -313,6 +320,7 @@
     >
       <Icon name={editing ? 'check' : 'pencil'} size={16} />
     </button>
+    {/if}
     <!-- Side-by-side hero: avatar stays left of the name on every screen
          size — gives a compact contact-card feel on mobile and saves a full
          avatar's worth of vertical space versus the old stacked layout. -->
@@ -909,14 +917,16 @@
               <LanguagesCard personId={person.id} onCount={(n) => (languagesCount = n)} />
             </div>
 
-            <AddFacetRow
-              facets={[
-                { key: 'tags', label: 'Tags', hidden: !showTags },
-                { key: 'education', label: 'Education', hidden: !showEducation },
-                { key: 'languages', label: 'Languages', hidden: !showLanguages }
-              ]}
-              onopen={(k) => (openFacets = { ...openFacets, [k]: true })}
-            />
+            {#if writeAllowed}
+              <AddFacetRow
+                facets={[
+                  { key: 'tags', label: 'Tags', hidden: !showTags },
+                  { key: 'education', label: 'Education', hidden: !showEducation },
+                  { key: 'languages', label: 'Languages', hidden: !showLanguages }
+                ]}
+                onopen={(k) => (openFacets = { ...openFacets, [k]: true })}
+              />
+            {/if}
 
             <!-- Bookkeeping, not biography — a line, not a card. -->
             <p class="text-xs text-ink-400">

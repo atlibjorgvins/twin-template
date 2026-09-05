@@ -30,6 +30,7 @@
     quickActions,
     openSheet
   } from '$lib/quickActionsStore.svelte';
+  import { canWrite } from '$lib/data/repo/vaultRole';
 
   let { data }: {
     data: {
@@ -68,10 +69,15 @@
       localStorage.setItem(HABITS_KEY, habitsOpen ? '1' : '0');
     } catch { /* ignore */ }
   }
-  const rowItems = [
-    ...(featureOn('habits') ? [{ key: 'habits', label: 'Habits', icon: 'check' as IconName }] : []),
-    ...activeHighlights(featureOn)
-  ];
+  // Every highlight (capture, new person/org/note, log habit) is a write, so
+  // a viewer (managed vault) sees none — the row hides entirely. RLS is the
+  // real guard; this keeps the dashboard honest.
+  const rowItems = canWrite()
+    ? [
+        ...(featureOn('habits') ? [{ key: 'habits', label: 'Habits', icon: 'check' as IconName }] : []),
+        ...activeHighlights(featureOn)
+      ]
+    : [];
   function onRowActivate(key: string) {
     if (key === 'habits') toggleHabits();
     else openSheet(key);
@@ -254,11 +260,13 @@
        the mobile bottom-nav FAB opens the same menu. -->
   <!-- Habits leads the row: it toggles the card below instead of opening a
        sheet, so `active` reflects the local open state for that key. -->
-  <HighlightsRow
-    items={rowItems}
-    active={habitsOpen ? 'habits' : activeSheet}
-    onActivate={onRowActivate}
-  />
+  {#if rowItems.length}
+    <HighlightsRow
+      items={rowItems}
+      active={habitsOpen ? 'habits' : activeSheet}
+      onActivate={onRowActivate}
+    />
+  {/if}
 
   <!-- Actively working on — active focus task + timer, or the next in queue. -->
   {#if featureOn('focus')}

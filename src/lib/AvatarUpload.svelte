@@ -1,5 +1,6 @@
 <script lang="ts">
   import Avatar from '$lib/Avatar.svelte';
+  import { canWrite } from '$lib/data/repo/vaultRole';
   import Icon from '$lib/Icon.svelte';
   import { uploadFile, uploadFromUrl, resizeImageFile } from '$lib/directus';
   import { setFileFocal } from '$lib/studio/data';
@@ -68,6 +69,7 @@
   let input: HTMLInputElement | undefined = $state();
   let urlInputEl: HTMLInputElement | undefined = $state();
   let menuOpen = $state(false);
+  const writeAllowed = canWrite();
   let urlOpen = $state(false);
   let urlValue = $state('');
   let uploading = $state(false);
@@ -529,6 +531,10 @@
 <svelte:window onkeydown={onKey} />
 
 <div class="relative inline-block" style="width: {size}px;">
+  {#if !writeAllowed}
+    <!-- Viewer: the avatar, no upload affordance. -->
+    <Avatar {name} {src} {size} position={focal ?? ''} {bgColor} />
+  {:else}
   <button
     type="button"
     class="group relative block rounded-full focus:outline-none focus:ring-2 focus:ring-brand"
@@ -779,6 +785,7 @@
         <button class="btn-primary" onclick={submitUrl} disabled={!urlValue.trim()}>Fetch</button>
       </div>
     </div>
+  {/if}
   {/if}
 </div>
 

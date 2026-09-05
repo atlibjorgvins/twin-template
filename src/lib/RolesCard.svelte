@@ -4,7 +4,10 @@
   import TagPill from '$lib/TagPill.svelte';
   import EditableField from '$lib/EditableField.svelte';
   import { updateRole, createRole, searchOrgs, createOrg, avatarSrc, listRoleTitles, formatError, type Organization, type Role } from '$lib/directus';
+  import { canWrite } from '$lib/data/repo/vaultRole';
   import { onMount } from 'svelte';
+
+  const writeAllowed = canWrite();
 
   // Shared title vocabulary — same datalist as the org People card, so
   // "CEO" is spelled identically from either side and searches match.
@@ -172,11 +175,13 @@
         <span class="text-ink-300 font-normal">· {formerRoles.length} former</span>
       {/if}
     </span>
-    <button
-      class="inline-flex items-center gap-1 rounded-full border border-surface-border bg-surface-card px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-surface-hover"
-      aria-label="Add role"
-      onclick={openAdd}
-    ><Icon name="plus" size={14} /> Add role</button>
+    {#if writeAllowed}
+      <button
+        class="inline-flex items-center gap-1 rounded-full border border-surface-border bg-surface-card px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-surface-hover"
+        aria-label="Add role"
+        onclick={openAdd}
+      ><Icon name="plus" size={14} /> Add role</button>
+    {/if}
   </div>
 
   {#if adding}

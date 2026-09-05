@@ -57,6 +57,11 @@
   import { cubicOut } from 'svelte/easing';
   import { applyTheme, watchSystemTheme } from '$lib/theme.svelte';
   import { openSheet as openQuickAction } from '$lib/quickActionsStore.svelte';
+  import { canWrite as vaultCanWrite } from '$lib/data/repo/vaultRole';
+
+  // Hide the quick-add FAB for a viewer (managed vault) — everything it opens
+  // is a create. RLS is the real guard; this keeps the button from lying.
+  const quickWriteAllowed = vaultCanWrite();
   import type { IconName } from '$lib/icon-types';
   import { NAV_TABS, type Tab } from '$lib/nav';
   import { personName, syncOfflineMirror, probeConnection } from '$lib/directus';
@@ -687,14 +692,16 @@
            with a negative top margin so it pokes up like Instagram /
            TikTok's "+" buttons. Tap opens the QuickActions menu sheet. -->
       <div class="flex min-h-[56px] items-center justify-center">
-        <button
-          type="button"
-          class="quick-action-fab"
-          aria-label="Quick actions"
-          onclick={() => openQuickAction('menu')}
-        >
-          <Icon name="plus" size={22} />
-        </button>
+        {#if quickWriteAllowed}
+          <button
+            type="button"
+            class="quick-action-fab"
+            aria-label="Quick actions"
+            onclick={() => openQuickAction('menu')}
+          >
+            <Icon name="plus" size={22} />
+          </button>
+        {/if}
       </div>
 
       {#each mobileRight as tab (tab.href)}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '$lib/Icon.svelte';
+  import { canWrite } from '$lib/data/repo/vaultRole';
   import {
     searchTags,
     createTag,
@@ -27,6 +28,7 @@
 
   // ── Picker state ──────────────────────────────────────────────────────────
   let adding = $state(false);
+  const writeAllowed = canWrite();
   let query = $state('');
   let results = $state<Tag[]>([]);
   let searched = $state(false);
@@ -158,7 +160,7 @@
       <Icon name="tag" size={16} /> Tags
       <span class="text-ink-300 font-normal">{links.length}</span>
     </span>
-    {#if !adding}
+    {#if !adding && writeAllowed}
       <button
         class="inline-flex items-center gap-1 rounded-full border border-surface-border bg-surface-card px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-surface-hover"
         aria-label="Add tag"
