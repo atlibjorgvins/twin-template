@@ -14,7 +14,7 @@ import type { LayoutLoad } from './$types';
 // sign-in page (auth outranks onboarding), the PWA share/capture targets
 // (redirecting one away silently drops the thing being shared), and the
 // unattended wall screens where a wizard would just be a hung kiosk.
-const ONBOARDING_EXEMPT = ['/welcome', '/login', '/vault-login', '/share', '/capture', '/display', '/kiosk', '/spotlight'];
+const ONBOARDING_EXEMPT = ['/welcome', '/login', '/vault-login', '/join', '/share', '/capture', '/display', '/kiosk', '/spotlight'];
 
 // One auth probe per page load — the managed-vault gate runs on every
 // navigation, but the session answer cannot change without a reload anyway.
@@ -57,7 +57,7 @@ export const load: LayoutLoad = async ({ url }) => {
   if (
     browser &&
     activeVault().managed &&
-    !['/vault-login', '/welcome', '/spotlight'].some((p) => url.pathname.startsWith(p))
+    !['/vault-login', '/welcome', '/spotlight', '/join'].some((p) => url.pathname.startsWith(p))
   ) {
     if (!(await vaultSignedIn())) redirect(307, '/vault-login');
   }

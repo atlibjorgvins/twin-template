@@ -11,6 +11,33 @@
   import { switchVault } from '$lib/vaultSwitch';
   import { checkSupabaseConn, connCheckMessage, normalizeSupabaseUrl, normalizeSupabaseKey } from '$lib/data/repo/validate';
   import { unifiedEnabled, setUnifiedEnabled, foreignReadableVaults } from '$lib/data/repo/crossVault';
+  import { inviteLink } from '$lib/data/repo/vaultInvite';
+
+  // Copy a shareable invite link for a managed vault so a coworker joins
+  // without hand-typing the URL + anon key. Carries no password/admin key.
+  let invited = $state<string | null>(null);
+  let inviteTimer: ReturnType<typeof setTimeout> | undefined;
+  async function copyInvite(v: Vault) {
+    if (!v.supabaseUrl || !v.supabaseKey) return;
+    const link = inviteLink(location.origin, {
+      name: v.name,
+      supabaseUrl: v.supabaseUrl,
+      supabaseKey: v.supabaseKey,
+      managed: !!v.managed
+    });
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = link; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch { /* nothing else to try */ }
+      ta.remove();
+    }
+    invited = v.id;
+    clearTimeout(inviteTimer);
+    inviteTimer = setTimeout(() => (invited = null), 1800);
+  }
   import { activeBackend, auth, type BackendId } from '$lib/data/repo';
   import { changeOwnPassword } from '$lib/data/repo/vaultAccount';
 
@@ -209,6 +236,11 @@
              class="shrink-0 rounded-[10px] border border-surface-border px-3 py-1.5 text-xs font-medium text-ink-500 hover:bg-surface-hover">
             History
           </a>
+          <button type="button" onclick={() => copyInvite(v)}
+                  class="shrink-0 rounded-[10px] border border-surface-border px-3 py-1.5 text-xs font-medium text-ink-500 hover:bg-surface-hover"
+                  title="Copy a link that lets a coworker join this vault without typing the URL and key">
+            {invited === v.id ? 'Copied ✓' : 'Invite'}
+          </button>
           <button type="button" onclick={() => { pwOpen = !pwOpen; pwError = ''; pwDone = false; }}
                   class="shrink-0 rounded-[10px] border border-surface-border px-3 py-1.5 text-xs font-medium text-ink-500 hover:bg-surface-hover">
             Password
