@@ -52,3 +52,26 @@ export async function listAudit(limit = 100): Promise<AuditEntry[]> {
     return [];
   }
 }
+
+/** History for ONE record (a person/org card). row_id is stored as text, so
+ *  the id is compared as a string. Best-effort — [] when history is off. */
+export async function listAuditFor(
+  table: string,
+  rowId: number | string,
+  limit = 50
+): Promise<AuditEntry[]> {
+  try {
+    return await repo.list<AuditEntry>('twin_audit', {
+      where: {
+        and: [
+          { field: 'table_name', op: 'eq', value: table },
+          { field: 'row_id', op: 'eq', value: String(rowId) }
+        ]
+      },
+      sort: ['-occurred_at', '-id'],
+      limit
+    });
+  } catch {
+    return [];
+  }
+}

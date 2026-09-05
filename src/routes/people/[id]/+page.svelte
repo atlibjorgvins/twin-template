@@ -8,6 +8,7 @@
   import { fetchAssetFile, firstMappedAsset, immichAvailable, type ImmichAsset } from '$lib/immich';
   import EditableField from '$lib/EditableField.svelte';
   import RolesCard from '$lib/RolesCard.svelte';
+  import RecordHistory from '$lib/RecordHistory.svelte';
   import FamilyCard from '$lib/FamilyCard.svelte';
   import { featureOn } from '$lib/instance';
   import PersonProjectsCard from '$lib/PersonProjectsCard.svelte';
@@ -921,6 +922,9 @@
             <p class="text-xs text-ink-400">
               Created {fmtDate(person.date_created)} · Updated {fmtDate(person.date_updated)}
             </p>
+
+            <!-- Who changed this record (managed vaults with history on). -->
+            <RecordHistory table="Person" rowId={person.id} />
           </div>
         {:else if tab.value === 'family'}
           <div class="p-4">

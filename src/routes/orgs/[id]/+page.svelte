@@ -4,6 +4,7 @@
   import TagPill from '$lib/TagPill.svelte';
   import EditableField from '$lib/EditableField.svelte';
   import PeopleAtOrgCard from '$lib/PeopleAtOrgCard.svelte';
+  import RecordHistory from '$lib/RecordHistory.svelte';
   import OrgProjectsCard from '$lib/OrgProjectsCard.svelte';
   import BrandCard from '$lib/admin/BrandCard.svelte';
   import NewsCoverage from '$lib/news/NewsCoverage.svelte';
@@ -1114,6 +1115,9 @@
                 <div class="mt-1 font-medium">{[org.city, org.country].filter(Boolean).join(', ') || '—'}</div>
               </div>
             </div>
+
+            <!-- Who changed this record (managed vaults with history on). -->
+            <RecordHistory table="organization" rowId={org.id} />
           </div>
         {:else}
           <div class="p-4">
