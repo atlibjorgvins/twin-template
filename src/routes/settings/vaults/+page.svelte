@@ -205,6 +205,10 @@
              style="background: var(--accent-electric); color: var(--accent-text);">
             Members
           </a>
+          <a href="/history"
+             class="shrink-0 rounded-[10px] border border-surface-border px-3 py-1.5 text-xs font-medium text-ink-500 hover:bg-surface-hover">
+            History
+          </a>
           <button type="button" onclick={() => { pwOpen = !pwOpen; pwError = ''; pwDone = false; }}
                   class="shrink-0 rounded-[10px] border border-surface-border px-3 py-1.5 text-xs font-medium text-ink-500 hover:bg-surface-hover">
             Password

@@ -103,6 +103,52 @@ export async function ensurePluginSchema(pluginId: string): Promise<SchemaSyncRe
   return 'applied';
 }
 
+/** Run arbitrary idempotent DDL through the vault's service_role RPC. Shared
+ *  by the plugin and audit apply paths. */
+async function applyDdl(url: string, adminKey: string, ddl: string): Promise<void> {
+  const res = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/rpc/twin_apply_schema`, {
+    method: 'POST',
+    headers: {
+      apikey: adminKey,
+      Authorization: `Bearer ${adminKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ ddl })
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(
+      res.status === 404
+        ? 'This vault predates in-app schema updates — paste the current setup script once (Settings → Storage → Supabase → “First time?”), then retry.'
+        : `The database update was refused (${res.status}${body ? `: ${body.slice(0, 160)}` : ''}).`
+    );
+  }
+}
+
+/** Turn on change history (audit log + triggers) for the active managed
+ *  vault. Admin-only — needs the vault's service_role key, like any schema
+ *  change. Idempotent: re-running re-attaches triggers (picking up new
+ *  tables). Returns whether it applied or why not. */
+export async function ensureAuditSchema(): Promise<SchemaSyncResult> {
+  const { activeBackend } = await import('./index');
+  if (activeBackend !== 'supabase') return 'not-needed';
+  const v = activeVault();
+  if (!v.supabaseUrl || !v.supabaseKey) return 'not-needed';
+  if (!v.adminKey) return 'no-admin-key';
+  const { auditSql } = await import('./auditSchema');
+  await applyDdl(v.supabaseUrl, v.adminKey, auditSql());
+  return 'applied';
+}
+
+/** Is the change-history table present in the active vault? */
+export async function auditAvailable(): Promise<boolean> {
+  const { activeBackend } = await import('./index');
+  if (activeBackend !== 'supabase') return false;
+  const v = activeVault();
+  if (!v.supabaseUrl || !v.supabaseKey) return false;
+  return !(await tableMissing(v.supabaseUrl, v.supabaseKey, 'twin_audit'));
+}
+
 /** The message for 'no-admin-key', shared by the surfaces that show it. */
 export const NEEDS_ADMIN_MESSAGE =
   'This plugin needs tables this vault does not have yet. The vault admin can add them by ' +
