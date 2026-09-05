@@ -47,8 +47,12 @@ create table if not exists twin_audit (
   table_name text not null,
   row_id text,
   label text,
-  changes jsonb
+  changes jsonb,
+  snapshot jsonb
 );
+-- Full deleted-row snapshot, so a deletion can be reverted (re-inserted).
+-- add-column-if-not-exists keeps this idempotent on vaults created before it.
+alter table twin_audit add column if not exists snapshot jsonb;
 
 alter table twin_audit enable row level security;
 -- Members READ the history; direct writes are denied (no write policy). The
@@ -97,11 +101,13 @@ begin
     end if;
   end if;
 
-  insert into twin_audit (actor_id, actor_email, action, table_name, row_id, label, changes)
+  insert into twin_audit (actor_id, actor_email, action, table_name, row_id, label, changes, snapshot)
   values (
     auth.uid(),
     coalesce(nullif(auth.jwt() ->> 'email', ''), auth.uid()::text),
-    act, tg_table_name, rid, lbl, diff
+    act, tg_table_name, rid, lbl, diff,
+    -- Keep the full row only on delete, so it can be re-inserted on revert.
+    case when act = 'delete' then j_old else null end
   );
   return coalesce(NEW, OLD);
 end

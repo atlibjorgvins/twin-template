@@ -6,15 +6,24 @@
   import { onMount } from 'svelte';
   import Icon from '$lib/Icon.svelte';
   import type { IconName } from '$lib/icon-types';
-  import { listAudit, entityNoun, type AuditEntry } from '$lib/data/audit';
+  import { listAudit, entityNoun, revertEntry, isRevertable, type AuditEntry } from '$lib/data/audit';
   import { auditAvailable, ensureAuditSchema, NEEDS_ADMIN_MESSAGE } from '$lib/data/repo/schemaSync';
   import { activeVault } from '$lib/data/repo/vaults';
+  import { canWrite } from '$lib/data/repo/vaultRole';
 
   const vault = activeVault();
   let entries = $state<AuditEntry[]>([]);
   let ready = $state(false);
   let available = $state(true);
   let error = $state('');
+
+  // Filter by who made the change. The dropdown is populated from the full,
+  // unfiltered set (so switching filters never empties the options).
+  let actorFilter = $state('');
+  let actors = $state<string[]>([]);
+  // Only editors/admins may revert; the DB (RLS) enforces it regardless.
+  const mayRevert = canWrite();
+  let reverting = $state<number | null>(null);
 
   // Admin-enable state (managed vault, holds the service_role key).
   let enabling = $state(false);
@@ -26,7 +35,12 @@
     available = await auditAvailable();
     if (available) {
       try {
-        entries = await listAudit(200);
+        entries = await listAudit(200, actorFilter || undefined);
+        // Refresh the actor list from an unfiltered peek the first time.
+        if (actors.length === 0) {
+          const all = actorFilter ? await listAudit(200) : entries;
+          actors = [...new Set(all.map((e) => e.actor_email).filter((x): x is string => !!x))].sort();
+        }
       } catch (e) {
         error = e instanceof Error ? e.message : String(e);
       }
@@ -34,6 +48,22 @@
     ready = true;
   }
   onMount(load);
+
+  async function revert(e: AuditEntry) {
+    if (reverting !== null) return;
+    const noun = entityNoun(e.table_name);
+    if (!confirm(`Undo this change to ${noun}${e.label ? ` “${e.label}”` : ''}?`)) return;
+    reverting = e.id;
+    error = '';
+    try {
+      await revertEntry(e);
+      await load();
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err);
+    } finally {
+      reverting = null;
+    }
+  }
 
   async function enable() {
     if (enabling) return;
@@ -101,10 +131,21 @@
 <svelte:head><title>History · Hub</title></svelte:head>
 
 <section class="mx-auto max-w-2xl space-y-5 px-4 py-6">
-  <header>
-    <div class="hero-eyebrow">Change history</div>
-    <h1 class="font-display text-2xl font-bold" style="letter-spacing: -0.03em;">{vault.name}</h1>
-    <p class="mt-1 text-sm text-ink-500">Who added or changed people and organizations, and when.</p>
+  <header class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <div class="hero-eyebrow">Change history</div>
+      <h1 class="font-display text-2xl font-bold" style="letter-spacing: -0.03em;">{vault.name}</h1>
+      <p class="mt-1 text-sm text-ink-500">Who added or changed people and organizations, and when.</p>
+    </div>
+    {#if ready && available && actors.length > 1}
+      <label class="flex items-center gap-1.5 text-xs text-ink-400">
+        Member
+        <select class="input px-2 py-1 text-xs" bind:value={actorFilter} onchange={load}>
+          <option value="">Everyone</option>
+          {#each actors as a (a)}<option value={a}>{a}</option>{/each}
+        </select>
+      </label>
+    {/if}
   </header>
 
   {#if !ready}
@@ -158,7 +199,16 @@
                   </div>
                 {/if}
               </div>
-              <span class="shrink-0 text-xs text-ink-400" title={new Date(e.occurred_at).toLocaleString()}>{when(e.occurred_at)}</span>
+              <div class="flex shrink-0 items-center gap-2">
+                {#if mayRevert && isRevertable(e)}
+                  <button type="button" onclick={() => revert(e)} disabled={reverting !== null}
+                          class="rounded-[8px] border border-surface-border px-2 py-1 text-[11px] font-medium text-ink-500 hover:bg-surface-hover"
+                          title="Undo this change">
+                    {reverting === e.id ? 'Undoing…' : 'Undo'}
+                  </button>
+                {/if}
+                <span class="text-xs text-ink-400" title={new Date(e.occurred_at).toLocaleString()}>{when(e.occurred_at)}</span>
+              </div>
             </li>
           {/each}
         </ul>
