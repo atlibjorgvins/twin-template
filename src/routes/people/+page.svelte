@@ -35,6 +35,11 @@
   import { activeVault, defaultVaultForScope, vaults } from '$lib/data/repo/vaults';
   import { switchVault } from '$lib/vaultSwitch';
   import { searchPeopleForeign } from '$lib/data/people';
+  import { canWrite } from '$lib/data/repo/vaultRole';
+
+  // Viewer role (managed vault) → hide write affordances. The DB (RLS) is the
+  // real enforcer; this just avoids showing buttons that would only fail.
+  const writeAllowed = canWrite();
 
   // A foreign row (unified "All vaults" view) carries __vault; a local row
   // does not. Keys must be vault-scoped — two vaults can each hold Person 1.
@@ -588,9 +593,15 @@
         {/if}
       </span>
     </h1>
-    <button class="btn-primary hidden md:inline-flex" onclick={openNew}>
-      <Icon name="plus" size={16} /> New person
-    </button>
+    {#if writeAllowed}
+      <button class="btn-primary hidden md:inline-flex" onclick={openNew}>
+        <Icon name="plus" size={16} /> New person
+      </button>
+    {:else}
+      <span class="rounded-full px-2.5 py-1 text-xs font-medium" style="background: var(--bg-tertiary); color: var(--text-tertiary);" title="You have viewer access to this vault">
+        View only
+      </span>
+    {/if}
   </div>
 
   <!-- Secondary controls: search + view + filters. -->

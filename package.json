@@ -1,6 +1,6 @@
 {
   "name": "twin",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,7 +16,8 @@
     "build:klak": "vite build --mode klak",
     "prebuild:desktop": "npm run plugins:fetch",
     "build:desktop": "vite build --mode desktop",
-    "dmg": "tauri build --bundles app,dmg",
+    "dmg": "tauri build --bundles app && bash scripts/make-dmg.sh",
+    "dmg:tauri": "tauri build --bundles app,dmg",
     "preview": "vite preview",
     "precheck": "npm run plugins:fetch",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

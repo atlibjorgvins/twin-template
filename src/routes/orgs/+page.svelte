@@ -29,6 +29,10 @@
   import { activeVault, defaultVaultForScope, vaults } from '$lib/data/repo/vaults';
   import { switchVault } from '$lib/vaultSwitch';
   import { searchOrgsForeign } from '$lib/data/orgs';
+  import { canWrite } from '$lib/data/repo/vaultRole';
+
+  // Viewer role → hide write affordances (RLS is the real enforcer).
+  const writeAllowed = canWrite();
   import VaultBadge from '$lib/VaultBadge.svelte';
 
   type Row = Organization & { __vault?: { id: string; name: string } };
@@ -489,9 +493,15 @@
           aria-selected={view === 'grid'} role="tab"
         >Grid</button>
       </div>
-      <button class="btn-primary hidden md:inline-flex" onclick={openNew}>
-        <Icon name="plus" size={16} /> New org
-      </button>
+      {#if writeAllowed}
+        <button class="btn-primary hidden md:inline-flex" onclick={openNew}>
+          <Icon name="plus" size={16} /> New org
+        </button>
+      {:else}
+        <span class="rounded-full px-2.5 py-1 text-xs font-medium" style="background: var(--bg-tertiary); color: var(--text-tertiary);" title="You have viewer access to this vault">
+          View only
+        </span>
+      {/if}
     </div>
   </div>
 

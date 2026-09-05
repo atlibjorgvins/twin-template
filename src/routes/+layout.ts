@@ -60,6 +60,9 @@ export const load: LayoutLoad = async ({ url }) => {
     !['/vault-login', '/welcome', '/spotlight', '/join'].some((p) => url.pathname.startsWith(p))
   ) {
     if (!(await vaultSignedIn())) redirect(307, '/vault-login');
+    // Signed in — resolve the member's role so write controls know to hide
+    // for a viewer. Cached; the RLS policy is the real enforcer regardless.
+    await (await import('$lib/data/repo/vaultRole')).loadVaultRole();
   }
 
   // First run on this device → the onboarding wizard, once. Device-local

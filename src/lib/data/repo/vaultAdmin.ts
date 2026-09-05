@@ -122,3 +122,48 @@ export function resetPassword(conn: AdminConn, id: string, password: string): Pr
 export function deleteMember(conn: AdminConn, id: string): Promise<void> {
   return call<void>(conn, 'DELETE', `/${id}`);
 }
+
+// ── Roles (per-user permissions — twin_member table) ────────────────────────
+// These hit PostgREST (the data plane), not the auth admin API, with the
+// service_role key — which bypasses RLS, so an admin can read and set any
+// role. Return {} rather than throwing when twin_member doesn't exist yet
+// (permissions not enabled), so the Members screen degrades quietly.
+
+async function rest(conn: AdminConn, path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(`${conn.url.replace(/\/+$/, '')}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: conn.serviceKey,
+      Authorization: `Bearer ${conn.serviceKey}`,
+      'Content-Type': 'application/json',
+      ...(init.headers || {})
+    }
+  });
+}
+
+/** Map of user_id → role. Empty when permissions aren't enabled. */
+export async function listRoles(conn: AdminConn): Promise<Record<string, string>> {
+  const res = await rest(conn, 'twin_member?select=user_id,role');
+  if (!res.ok) return {};
+  const rows = (await res.json()) as { user_id: string; role: string }[];
+  return Object.fromEntries(rows.map((r) => [r.user_id, r.role]));
+}
+
+/** Set (upsert) a member's role. Upsert so it works whether or not a row
+ *  exists yet. No-op-safe on a vault without permissions (throws, caller
+ *  guards on listRoles first). */
+export async function setRole(
+  conn: AdminConn,
+  member: { id: string; email?: string },
+  role: string
+): Promise<void> {
+  const res = await rest(conn, 'twin_member?on_conflict=user_id', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ user_id: member.id, email: member.email ?? null, role })
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Could not set role (${res.status}${body ? `: ${body.slice(0, 120)}` : ''}).`);
+  }
+}

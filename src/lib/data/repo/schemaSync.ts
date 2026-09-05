@@ -149,6 +149,29 @@ export async function auditAvailable(): Promise<boolean> {
   return !(await tableMissing(v.supabaseUrl, v.supabaseKey, 'twin_audit'));
 }
 
+/** Turn on per-user permissions (roles enforced by RLS) for the active
+ *  managed vault. Admin-only (service_role key). Idempotent; seeds existing
+ *  members as admin so no one is locked out. */
+export async function ensurePermissionsSchema(): Promise<SchemaSyncResult> {
+  const { activeBackend } = await import('./index');
+  if (activeBackend !== 'supabase') return 'not-needed';
+  const v = activeVault();
+  if (!v.supabaseUrl || !v.supabaseKey) return 'not-needed';
+  if (!v.adminKey) return 'no-admin-key';
+  const { permissionsSql } = await import('./permissionsSchema');
+  await applyDdl(v.supabaseUrl, v.adminKey, permissionsSql());
+  return 'applied';
+}
+
+/** Are per-user permissions enabled (the twin_member table exists)? */
+export async function permissionsAvailable(): Promise<boolean> {
+  const { activeBackend } = await import('./index');
+  if (activeBackend !== 'supabase') return false;
+  const v = activeVault();
+  if (!v.supabaseUrl || !v.supabaseKey) return false;
+  return !(await tableMissing(v.supabaseUrl, v.supabaseKey, 'twin_member'));
+}
+
 /** The message for 'no-admin-key', shared by the surfaces that show it. */
 export const NEEDS_ADMIN_MESSAGE =
   'This plugin needs tables this vault does not have yet. The vault admin can add them by ' +

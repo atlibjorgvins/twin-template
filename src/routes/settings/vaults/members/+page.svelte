@@ -8,8 +8,10 @@
   import { activeVault, updateActiveVault } from '$lib/data/repo/vaults';
   import {
     listMembers, createMember, setBanned, resetPassword, deleteMember,
-    isBanned, tempPassword, type VaultMember, type AdminConn
+    isBanned, tempPassword, listRoles, setRole, type VaultMember, type AdminConn
   } from '$lib/data/repo/vaultAdmin';
+  import { ensurePermissionsSchema } from '$lib/data/repo/schemaSync';
+  import { ROLES } from '$lib/data/repo/permissionsSchema';
 
   const vault = activeVault();
 
@@ -35,15 +37,50 @@
   let loading = $state(false);
   let error = $state('');
 
+  // Per-user roles. `roles` maps user_id → role; `permsOn` is whether the
+  // twin_member table exists (permissions enabled) on this vault.
+  let roles = $state<Record<string, string>>({});
+  let permsOn = $state(false);
+  let enablingPerms = $state(false);
+  const ROLE_OPTS = ROLES;
+
   async function refresh(c: AdminConn) {
     loading = true;
     error = '';
     try {
       members = await listMembers(c);
+      roles = await listRoles(c);
+      permsOn = Object.keys(roles).length > 0;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     } finally {
       loading = false;
+    }
+  }
+
+  async function enablePerms() {
+    if (!conn || enablingPerms) return;
+    enablingPerms = true;
+    error = '';
+    try {
+      await ensurePermissionsSchema();
+      await refresh(conn);
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    } finally {
+      enablingPerms = false;
+    }
+  }
+
+  async function changeRole(m: VaultMember, role: string) {
+    if (!conn) return;
+    const prev = roles[m.id];
+    roles = { ...roles, [m.id]: role }; // optimistic
+    try {
+      await setRole(conn, { id: m.id, email: m.email }, role);
+    } catch (e) {
+      roles = { ...roles, [m.id]: prev }; // revert
+      error = e instanceof Error ? e.message : String(e);
     }
   }
 
@@ -89,7 +126,12 @@
     inviting = true;
     error = '';
     try {
-      await createMember(conn, newEmail.trim(), newPassword);
+      const created = await createMember(conn, newEmail.trim(), newPassword);
+      // New members default to editor when permissions are on (the table
+      // default is 'editor' too; set it explicitly so the roster shows it).
+      if (permsOn && created?.id) {
+        await setRole(conn, { id: created.id, email: newEmail.trim() }, 'editor').catch(() => {});
+      }
       issued = { email: newEmail.trim(), password: newPassword };
       newEmail = '';
       newPassword = tempPassword();
@@ -241,6 +283,22 @@
       </div>
     {/if}
 
+    <!-- Per-user permissions ─────────────────────────────────────────────── -->
+    {#if !permsOn}
+      <div class="card flex flex-wrap items-center gap-3 p-4">
+        <div class="min-w-0 flex-1 text-sm text-ink-700">
+          <span class="font-medium text-ink-900">Per-user permissions are off.</span>
+          Every member can edit everything. Turn on roles to make some members
+          <span class="font-medium">viewers</span> (read-only) or limit editing.
+        </div>
+        <button type="button" onclick={enablePerms} disabled={enablingPerms}
+                class="shrink-0 rounded-[10px] px-3 py-1.5 text-xs font-medium"
+                style={`background: var(--accent-electric); color: var(--accent-text); opacity: ${enablingPerms ? 0.5 : 1};`}>
+          {enablingPerms ? 'Turning on…' : 'Turn on roles'}
+        </button>
+      </div>
+    {/if}
+
     <!-- The members ────────────────────────────────────────────────────── -->
     <ul class="divide-y divide-surface-divider rounded-[14px] border border-surface-border bg-surface-card">
       {#if loading && members.length === 0}
@@ -270,6 +328,15 @@
             </div>
           </div>
           <div class="flex shrink-0 items-center gap-2">
+            {#if permsOn}
+              <select class="input px-2 py-1 text-xs" value={roles[m.id] ?? 'editor'}
+                      onchange={(e) => changeRole(m, (e.currentTarget as HTMLSelectElement).value)}
+                      title="This member's role in the vault">
+                {#each ROLE_OPTS as r}
+                  <option value={r}>{r}</option>
+                {/each}
+              </select>
+            {/if}
             <button type="button" onclick={() => reissue(m)} disabled={busyId === m.id}
                     class="rounded-[10px] border border-surface-border px-3 py-1.5 text-xs font-medium text-ink-500 hover:bg-surface-hover"
                     title="Issue a fresh temporary password">
