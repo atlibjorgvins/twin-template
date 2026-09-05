@@ -20,6 +20,11 @@
     type OrganizationPhoto,
     type PhotoType
   } from '$lib/directus';
+  import { canWrite } from '$lib/data/repo/vaultRole';
+
+  // Uploading/editing photos is a write — a viewer (managed vault) sees the
+  // gallery read-only. RLS enforces it regardless; this just hides the UI.
+  const writeAllowed = canWrite();
 
   let { orgId, orgName = '', onCount }: { orgId: number; orgName?: string; onCount?: (n: number) => void } = $props();
 
@@ -154,25 +159,27 @@
       <Icon name="sparkles" size={16} /> Photos
       {#if photos.length > 0}<span class="font-normal text-ink-300">{photos.length}</span>{/if}
     </span>
-    <span class="flex items-center gap-2">
-      <select class="input !w-auto !py-1 text-xs" bind:value={uploadTypeId} title="Type for new uploads">
-        <option value="">No type</option>
-        {#each types as t (t.id)}
-          <option value={t.id}>{t.name}</option>
-        {/each}
-      </select>
-      <button class="btn-ghost !px-2 text-xs" disabled={uploading > 0} onclick={() => fileInput?.click()}>
-        {uploading > 0 ? `Uploading ${uploading}…` : '+ Add photos'}
-      </button>
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        class="hidden"
-        bind:this={fileInput}
-        onchange={onPick}
-      />
-    </span>
+    {#if writeAllowed}
+      <span class="flex items-center gap-2">
+        <select class="input !w-auto !py-1 text-xs" bind:value={uploadTypeId} title="Type for new uploads">
+          <option value="">No type</option>
+          {#each types as t (t.id)}
+            <option value={t.id}>{t.name}</option>
+          {/each}
+        </select>
+        <button class="btn-ghost !px-2 text-xs" disabled={uploading > 0} onclick={() => fileInput?.click()}>
+          {uploading > 0 ? `Uploading ${uploading}…` : '+ Add photos'}
+        </button>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          class="hidden"
+          bind:this={fileInput}
+          onchange={onPick}
+        />
+      </span>
+    {/if}
   </div>
 
   {#if error}
@@ -208,39 +215,45 @@
                 style="background: rgba(0,0,0,0.55); color: #fff; letter-spacing: 0.06em;"
               >{typeName(p)}</span>
             {/if}
-            <span
-              class="absolute right-1.5 top-1.5 hidden cursor-pointer rounded-full p-1 group-hover:block"
-              style="background: rgba(0,0,0,0.55); color: #fff;"
-              title="Remove photo"
-              aria-label="Remove photo"
-              role="button"
-              tabindex="-1"
-              onclick={(e) => {
-                e.stopPropagation();
-                void remove(p);
-              }}
-            >
-              <Icon name="x" size={12} />
-            </span>
+            {#if writeAllowed}
+              <span
+                class="absolute right-1.5 top-1.5 hidden cursor-pointer rounded-full p-1 group-hover:block"
+                style="background: rgba(0,0,0,0.55); color: #fff;"
+                title="Remove photo"
+                aria-label="Remove photo"
+                role="button"
+                tabindex="-1"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  void remove(p);
+                }}
+              >
+                <Icon name="x" size={12} />
+              </span>
+            {/if}
           </button>
-          <select
-            class="input w-full !py-0.5 text-[11px]"
-            value={String(typeIdOf(p))}
-            disabled={busyId === p.id}
-            onchange={(e) => setType(p, (e.currentTarget as HTMLSelectElement).value)}
-          >
-            <option value="">No type</option>
-            {#each types as t (t.id)}
-              <option value={String(t.id)}>{t.name}</option>
-            {/each}
-          </select>
-          <input
-            class="input w-full !py-0.5 text-[11px]"
-            placeholder="Caption…"
-            value={p.caption ?? ''}
-            disabled={busyId === p.id}
-            onchange={(e) => setCaption(p, (e.currentTarget as HTMLInputElement).value)}
-          />
+          {#if writeAllowed}
+            <select
+              class="input w-full !py-0.5 text-[11px]"
+              value={String(typeIdOf(p))}
+              disabled={busyId === p.id}
+              onchange={(e) => setType(p, (e.currentTarget as HTMLSelectElement).value)}
+            >
+              <option value="">No type</option>
+              {#each types as t (t.id)}
+                <option value={String(t.id)}>{t.name}</option>
+              {/each}
+            </select>
+            <input
+              class="input w-full !py-0.5 text-[11px]"
+              placeholder="Caption…"
+              value={p.caption ?? ''}
+              disabled={busyId === p.id}
+              onchange={(e) => setCaption(p, (e.currentTarget as HTMLInputElement).value)}
+            />
+          {:else if p.caption}
+            <div class="truncate px-0.5 text-[11px] text-ink-500" title={p.caption}>{p.caption}</div>
+          {/if}
         </li>
       {/each}
     </ul>
@@ -317,7 +330,9 @@
       {/if}
     </div>
 
-    <!-- Controls strip — the grid's options plus the Studio centre point. -->
+    <!-- Controls strip — the grid's options plus the Studio centre point.
+         Hidden for viewers (read-only); RLS enforces it regardless. -->
+    {#if writeAllowed}
     <div class="flex flex-wrap items-end justify-center gap-x-6 gap-y-3 bg-black/60 p-3">
       <label class="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-white/50">
         Type
@@ -357,5 +372,6 @@
         <Icon name="x" size={13} /> Remove
       </button>
     </div>
+    {/if}
   </div>
 {/if}

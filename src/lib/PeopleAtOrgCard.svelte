@@ -1,5 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/Icon.svelte';
+  import { canWrite } from '$lib/data/repo/vaultRole';
+  const writeAllowed = canWrite();
   import Avatar from '$lib/Avatar.svelte';
   import TagPill from '$lib/TagPill.svelte';
   import EditableField from '$lib/EditableField.svelte';
@@ -240,11 +242,13 @@
         <span class="text-ink-300 font-normal">· {formerGroups.length} former</span>
       {/if}
     </span>
-    <button
-      class="inline-flex items-center gap-1 rounded-full border border-surface-border bg-surface-card px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-surface-hover"
-      aria-label="Add person"
-      onclick={openAdd}
-    ><Icon name="plus" size={14} /> Add person</button>
+    {#if writeAllowed}
+      <button
+        class="inline-flex items-center gap-1 rounded-full border border-surface-border bg-surface-card px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-surface-hover"
+        aria-label="Add person"
+        onclick={openAdd}
+      ><Icon name="plus" size={14} /> Add person</button>
+    {/if}
   </div>
 
   {#if adding}

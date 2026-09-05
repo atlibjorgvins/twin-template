@@ -4,6 +4,7 @@
   import TagPill from '$lib/TagPill.svelte';
   import EditableField from '$lib/EditableField.svelte';
   import PeopleAtOrgCard from '$lib/PeopleAtOrgCard.svelte';
+  import { canWrite } from '$lib/data/repo/vaultRole';
   import RecordHistory from '$lib/RecordHistory.svelte';
   import OrgProjectsCard from '$lib/OrgProjectsCard.svelte';
   import BrandCard from '$lib/admin/BrandCard.svelte';
@@ -106,6 +107,8 @@
   let merging = $state(false);
   let rebranding = $state(false);
   let editing = $state(false);
+  // Viewer (managed vault) → no edit toggle / facet-add (RLS enforces anyway).
+  const writeAllowed = canWrite();
 
   // ── Facet visibility ────────────────────────────────────────────────
   // Same treatment as the person page: a card earns its place by having
@@ -338,6 +341,7 @@
     <!-- Floating pencil — icon-only Edit toggle pinned to the
          top-right of the hero. Reveals empty fields, admin actions
          (Publish/Merge/Active/Archive/Directus). -->
+    {#if writeAllowed}
     <button
       type="button"
       class="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-400 hover:bg-surface-hover hover:text-ink-900 {editing ? 'bg-brand text-white hover:bg-brand hover:text-white' : ''}"
@@ -348,6 +352,7 @@
     >
       <Icon name={editing ? 'check' : 'pencil'} size={16} />
     </button>
+    {/if}
     <div class="flex flex-row items-start gap-3 sm:gap-5 sm:items-center">
       <div class="shrink-0">
         <AvatarUpload
@@ -570,15 +575,17 @@
     </div>
     {#if mobileActionsOpen}
       <ul id="org-mobile-actions-panel" class="mt-2 overflow-hidden rounded-[12px] border border-surface-border bg-surface-card text-sm">
-        <li>
-          <button
-            type="button"
-            class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-ink-700 hover:bg-surface-hover"
-            onclick={() => { activityOpenTrigger++; mobileActionsOpen = false; }}
-          >
-            <Icon name="calendar" size={16} /> Log conversation
-          </button>
-        </li>
+        {#if writeAllowed}
+          <li>
+            <button
+              type="button"
+              class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-ink-700 hover:bg-surface-hover"
+              onclick={() => { activityOpenTrigger++; mobileActionsOpen = false; }}
+            >
+              <Icon name="calendar" size={16} /> Log conversation
+            </button>
+          </li>
+        {/if}
         {#if socials.find((r) => r.platform === 'linkedin')?.url}
           <li class="border-t border-surface-divider">
             <a
@@ -605,15 +612,17 @@
             </a>
           </li>
         {/if}
-        <li class="border-t border-surface-divider">
-          <button
-            type="button"
-            class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-ink-700 hover:bg-surface-hover"
-            onclick={() => { enriching = true; mobileActionsOpen = false; }}
-          >
-            <Icon name="sparkles" size={16} /> Enrich from web
-          </button>
-        </li>
+        {#if writeAllowed}
+          <li class="border-t border-surface-divider">
+            <button
+              type="button"
+              class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-ink-700 hover:bg-surface-hover"
+              onclick={() => { enriching = true; mobileActionsOpen = false; }}
+            >
+              <Icon name="sparkles" size={16} /> Enrich from web
+            </button>
+          </li>
+        {/if}
       </ul>
     {/if}
   </div>
@@ -1039,19 +1048,21 @@
               </div>
             </div>
 
-            <AddFacetRow
-              facets={[
-                { key: 'tags', label: 'Tags', hidden: !showTags },
-                { key: 'socials', label: 'Social profiles', hidden: !showSocials && socials.length === 0 },
-                { key: 'grants', label: 'Grants', hidden: !showGrants },
-                { key: 'receipts', label: 'Expenses', hidden: !showReceipts },
-                { key: 'photos', label: 'Photos', hidden: !showOrgPhotos },
-                { key: 'library', label: 'Photo library', hidden: !showLibrary },
-                { key: 'people', label: 'People', hidden: !showPeople },
-                { key: 'activities', label: 'Activity', hidden: !showActivities }
-              ]}
-              onopen={(k) => (openFacets = { ...openFacets, [k]: true })}
-            />
+            {#if writeAllowed}
+              <AddFacetRow
+                facets={[
+                  { key: 'tags', label: 'Tags', hidden: !showTags },
+                  { key: 'socials', label: 'Social profiles', hidden: !showSocials && socials.length === 0 },
+                  { key: 'grants', label: 'Grants', hidden: !showGrants },
+                  { key: 'receipts', label: 'Expenses', hidden: !showReceipts },
+                  { key: 'photos', label: 'Photos', hidden: !showOrgPhotos },
+                  { key: 'library', label: 'Photo library', hidden: !showLibrary },
+                  { key: 'people', label: 'People', hidden: !showPeople },
+                  { key: 'activities', label: 'Activity', hidden: !showActivities }
+                ]}
+                onopen={(k) => (openFacets = { ...openFacets, [k]: true })}
+              />
+            {/if}
 
             <!-- Previous identities card. Renders only when at least
                  one row's successor_id points here — i.e. this org

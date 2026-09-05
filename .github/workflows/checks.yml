@@ -55,6 +55,14 @@ jobs:
           PUBLIC_OCR_URL=
           EOF
 
+      # registry.ts statically imports the external plugin manifests
+      # (src/lib/plugins/habits, games — gitignored, GitHub is their source of
+      # truth). The build's prebuild hook fetches them, but Tests run first and
+      # several suites import registry.ts, so fetch them here too or the gate
+      # dies on ERR_MODULE_NOT_FOUND before it tests anything.
+      - name: Fetch plugins
+        run: npm run plugins:fetch
+
       - name: Tests
         run: node --test --experimental-strip-types "src/**/*.test.ts"
 

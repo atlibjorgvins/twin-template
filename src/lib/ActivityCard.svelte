@@ -27,6 +27,11 @@
     type Project
   } from '$lib/directus';
   import type { IconName } from '$lib/icon-types';
+  import { canWrite } from '$lib/data/repo/vaultRole';
+
+  // Logging/editing activities is a write — a viewer (managed vault) sees the
+  // history read-only. RLS enforces it regardless; this just hides the UI.
+  const writeAllowed = canWrite();
 
   type Context =
     | { kind: 'person'; personId: number; personName?: string }
@@ -141,6 +146,7 @@
 
   // ─── Add flow ───────────────────────────────────────────────────────────
   function openAdd() {
+    if (!writeAllowed) return;
     adding = true;
     creating = false;
     newTitle = '';
@@ -355,12 +361,14 @@
       <Icon name="calendar" size={16} /> Activities
       <span class="text-ink-300 font-normal">{activities.length}</span>
     </span>
-    <button
-      class="inline-flex items-center gap-1 rounded-full border border-surface-border bg-surface-card px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-surface-hover"
-      onclick={openAdd}
-    >
-      <Icon name="plus" size={14} /> Log
-    </button>
+    {#if writeAllowed}
+      <button
+        class="inline-flex items-center gap-1 rounded-full border border-surface-border bg-surface-card px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-surface-hover"
+        onclick={openAdd}
+      >
+        <Icon name="plus" size={14} /> Log
+      </button>
+    {/if}
   </div>
 
   <!-- Filter chips -->
@@ -668,22 +676,24 @@
                 <div class="mt-1 line-clamp-2 text-xs text-ink-600">{a.summary}</div>
               {/if}
             </button>
-            <div class="flex shrink-0 items-center gap-1">
-              <button
-                class="rounded p-1 text-ink-400 hover:bg-surface-hover hover:text-brand"
-                onclick={() => bumpSignificance(a)}
-                title="Cycle significance"
-                aria-label="Cycle significance"
-              >
-                <Icon name="bolt" size={14} />
-              </button>
-              <button
-                class="rounded p-1 text-ink-400 hover:bg-surface-hover hover:text-tag-salesText"
-                onclick={() => removeActivity(a)}
-                title="Delete"
-                aria-label="Delete"
-              >×</button>
-            </div>
+            {#if writeAllowed}
+              <div class="flex shrink-0 items-center gap-1">
+                <button
+                  class="rounded p-1 text-ink-400 hover:bg-surface-hover hover:text-brand"
+                  onclick={() => bumpSignificance(a)}
+                  title="Cycle significance"
+                  aria-label="Cycle significance"
+                >
+                  <Icon name="bolt" size={14} />
+                </button>
+                <button
+                  class="rounded p-1 text-ink-400 hover:bg-surface-hover hover:text-tag-salesText"
+                  onclick={() => removeActivity(a)}
+                  title="Delete"
+                  aria-label="Delete"
+                >×</button>
+              </div>
+            {/if}
           </div>
 
           {#if expanded}
@@ -709,7 +719,7 @@
                           />
                           <a href={`/people/${p.id}`} class="hover:text-brand truncate">{personName(p)}</a>
                           {#if ap.role}<span class="text-ink-400">· {ap.role}</span>{/if}
-                          {#if !(context.kind === 'person' && p.id === context.personId)}
+                          {#if writeAllowed && !(context.kind === 'person' && p.id === context.personId)}
                             <button
                               class="text-ink-400 hover:text-tag-salesText"
                               onclick={() => detachPerson(a.id, ap.id)}
