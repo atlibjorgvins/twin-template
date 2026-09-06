@@ -1,2 +1,14 @@
 target/
-gen/
+# Tauri regenerates gen/schemas on every build — never commit it.
+gen/schemas
+# The native iOS/Android projects (gen/apple, gen/android) ARE the app shells —
+# signing team, icons, Info.plist live there — so they are committed. Only their
+# local build output and per-user Xcode state are ignored.
+gen/apple/build/
+gen/apple/xcuserdata/
+gen/apple/**/xcuserdata/
+gen/apple/Pods/
+gen/apple/Externals/
+gen/android/build/
+gen/android/.gradle/
+gen/android/local.properties

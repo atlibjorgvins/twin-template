@@ -1,6 +1,6 @@
 {
   "name": "twin",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,6 +19,7 @@
     "dmg": "tauri build --bundles app && bash scripts/make-dmg.sh",
     "dmg:tauri": "tauri build --bundles app,dmg",
     "preview": "vite preview",
+    "tauri": "tauri",
     "precheck": "npm run plugins:fetch",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test:schedule": "node --test --experimental-strip-types src/lib/scheduleTimer/parse.test.ts",

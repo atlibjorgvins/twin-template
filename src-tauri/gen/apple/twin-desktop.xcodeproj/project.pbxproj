@@ -1,0 +1,460 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1AB695FF608F98F0141BB20D /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4292CA71F7B89413CC2F3CFE /* WebKit.framework */; };
+		5683924455E3A0DDF79A4E08 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 895169D61A8E9AD07B92BBD1 /* Assets.xcassets */; };
+		660013A4448B2596A5D81EA1 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33FEDBCBB40597962E7E7FA8 /* CoreGraphics.framework */; };
+		6E97DA7E7D22F99E16E55F0B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6A371899AF88F5C2D09B2CB7 /* QuartzCore.framework */; };
+		6FA33EBB52677CDC796A6A84 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = 73ACBBBC47CF4B853EEA1C9A /* main.mm */; };
+		778D4AE2D2627725C287859B /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C29A673B4002093403D209D /* MetalKit.framework */; };
+		B36EDBA5FEAFAAB2FD66390B /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 49F7C8B322BFE5EB918A7ADF /* assets */; };
+		C8907D0C05D3EA00E584A5DD /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69592D3BE3F695710C6BC783 /* UIKit.framework */; };
+		CFF4744E7D0D54AFCA5E008C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = ACBF846A6EC9C6530B530CA6 /* LaunchScreen.storyboard */; };
+		DA4CDF23AF9040E499A73E71 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DD949D685F583123ABE6E433 /* Security.framework */; };
+		EB688AB131068C8EA4CE8141 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 70F06888DBB966018BEA606F /* libapp.a */; };
+		EF6F2D77FE7ED17E9D43E9AA /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B15EB8CFB2195C2DE69A62D4 /* Metal.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1E18E794C71000DA81C780FB /* twin-desktop_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "twin-desktop_iOS.entitlements"; sourceTree = "<group>"; };
+		33FEDBCBB40597962E7E7FA8 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		4292CA71F7B89413CC2F3CFE /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		49F7C8B322BFE5EB918A7ADF /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
+		63960473A91860470614197B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		69592D3BE3F695710C6BC783 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		6A371899AF88F5C2D09B2CB7 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		70F06888DBB966018BEA606F /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
+		73ACBBBC47CF4B853EEA1C9A /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
+		78679EC3CEB1BB191FBB543E /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
+		7C29A673B4002093403D209D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		851B2EE98E37C851375E34F2 /* main.rs */ = {isa = PBXFileReference; path = main.rs; sourceTree = "<group>"; };
+		895169D61A8E9AD07B92BBD1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A292493636A6044F4F1ED006 /* twin-desktop_iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "twin-desktop_iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		ACBF846A6EC9C6530B530CA6 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		B15EB8CFB2195C2DE69A62D4 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		DD949D685F583123ABE6E433 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		F91F75A1D2B883518EABE128 /* lib.rs */ = {isa = PBXFileReference; path = lib.rs; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		033400C8FF52530DD0B6AE2C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EB688AB131068C8EA4CE8141 /* libapp.a in Frameworks */,
+				660013A4448B2596A5D81EA1 /* CoreGraphics.framework in Frameworks */,
+				EF6F2D77FE7ED17E9D43E9AA /* Metal.framework in Frameworks */,
+				778D4AE2D2627725C287859B /* MetalKit.framework in Frameworks */,
+				6E97DA7E7D22F99E16E55F0B /* QuartzCore.framework in Frameworks */,
+				DA4CDF23AF9040E499A73E71 /* Security.framework in Frameworks */,
+				C8907D0C05D3EA00E584A5DD /* UIKit.framework in Frameworks */,
+				1AB695FF608F98F0141BB20D /* WebKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		004A84414AB5C83F46BE3B6E = {
+			isa = PBXGroup;
+			children = (
+				49F7C8B322BFE5EB918A7ADF /* assets */,
+				895169D61A8E9AD07B92BBD1 /* Assets.xcassets */,
+				ACBF846A6EC9C6530B530CA6 /* LaunchScreen.storyboard */,
+				144B8BAF6C77F4944E93D90B /* Externals */,
+				ECFA77658D2C1E8A76DCB4E8 /* Sources */,
+				CAAB1F5966490E64FE7EF224 /* src */,
+				068EA1C7A0E2C5FE2710BC10 /* twin-desktop_iOS */,
+				3443360530F2D9E79B007134 /* Frameworks */,
+				2EF887BFD766759DA94C6845 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		068EA1C7A0E2C5FE2710BC10 /* twin-desktop_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				63960473A91860470614197B /* Info.plist */,
+				1E18E794C71000DA81C780FB /* twin-desktop_iOS.entitlements */,
+			);
+			path = "twin-desktop_iOS";
+			sourceTree = "<group>";
+		};
+		144B8BAF6C77F4944E93D90B /* Externals */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Externals;
+			sourceTree = "<group>";
+		};
+		2EF887BFD766759DA94C6845 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A292493636A6044F4F1ED006 /* twin-desktop_iOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3443360530F2D9E79B007134 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				33FEDBCBB40597962E7E7FA8 /* CoreGraphics.framework */,
+				70F06888DBB966018BEA606F /* libapp.a */,
+				B15EB8CFB2195C2DE69A62D4 /* Metal.framework */,
+				7C29A673B4002093403D209D /* MetalKit.framework */,
+				6A371899AF88F5C2D09B2CB7 /* QuartzCore.framework */,
+				DD949D685F583123ABE6E433 /* Security.framework */,
+				69592D3BE3F695710C6BC783 /* UIKit.framework */,
+				4292CA71F7B89413CC2F3CFE /* WebKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		5C64ECF3CF866D6202504653 /* bindings */ = {
+			isa = PBXGroup;
+			children = (
+				78679EC3CEB1BB191FBB543E /* bindings.h */,
+			);
+			path = bindings;
+			sourceTree = "<group>";
+		};
+		CAAB1F5966490E64FE7EF224 /* src */ = {
+			isa = PBXGroup;
+			children = (
+				F91F75A1D2B883518EABE128 /* lib.rs */,
+				851B2EE98E37C851375E34F2 /* main.rs */,
+			);
+			name = src;
+			path = ../../src;
+			sourceTree = "<group>";
+		};
+		D6ECBF709F851AA4DF598C1F /* twin-desktop */ = {
+			isa = PBXGroup;
+			children = (
+				73ACBBBC47CF4B853EEA1C9A /* main.mm */,
+				5C64ECF3CF866D6202504653 /* bindings */,
+			);
+			path = "twin-desktop";
+			sourceTree = "<group>";
+		};
+		ECFA77658D2C1E8A76DCB4E8 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				D6ECBF709F851AA4DF598C1F /* twin-desktop */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A30E7DEA189E8FF816F527DF /* twin-desktop_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B92C748069C972DE63C8B800 /* Build configuration list for PBXNativeTarget "twin-desktop_iOS" */;
+			buildPhases = (
+				EAC2BDE39B2303FA03806D4B /* Build Rust Code */,
+				012E2901FBBFB0E04163D9F3 /* Sources */,
+				AF61DAFB4F595D6B4205E204 /* Resources */,
+				033400C8FF52530DD0B6AE2C /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "twin-desktop_iOS";
+			packageProductDependencies = (
+			);
+			productName = "twin-desktop_iOS";
+			productReference = A292493636A6044F4F1ED006 /* twin-desktop_iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B100A8B7C3B651408E552CBC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 9944F3C4EA7BC41B0BBFA490 /* Build configuration list for PBXProject "twin-desktop" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 004A84414AB5C83F46BE3B6E;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 2EF887BFD766759DA94C6845 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A30E7DEA189E8FF816F527DF /* twin-desktop_iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AF61DAFB4F595D6B4205E204 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5683924455E3A0DDF79A4E08 /* Assets.xcassets in Resources */,
+				CFF4744E7D0D54AFCA5E008C /* LaunchScreen.storyboard in Resources */,
+				B36EDBA5FEAFAAB2FD66390B /* assets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		EAC2BDE39B2303FA03806D4B /* Build Rust Code */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Rust Code";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Externals/x86_64/${CONFIGURATION}/libapp.a",
+				"$(SRCROOT)/Externals/arm64/${CONFIGURATION}/libapp.a",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "npm run -- tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		012E2901FBBFB0E04163D9F3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6FA33EBB52677CDC796A6A84 /* main.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		65FA9784814F9988C0CF39E8 /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = release;
+		};
+		8121B84E8B5CCD9C8E5AAA62 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ARCHS = (
+					arm64,
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "twin-desktop_iOS/twin-desktop_iOS.entitlements";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				INFOPLIST_FILE = "twin-desktop_iOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = is.bjorgvins.twin;
+				PRODUCT_NAME = "Twin";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALID_ARCHS = arm64;
+			};
+			name = debug;
+		};
+		93BBCD9F5109853F82E9FDF0 /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ARCHS = (
+					arm64,
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "twin-desktop_iOS/twin-desktop_iOS.entitlements";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				INFOPLIST_FILE = "twin-desktop_iOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = is.bjorgvins.twin;
+				PRODUCT_NAME = "Twin";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALID_ARCHS = arm64;
+			};
+			name = release;
+		};
+		BB865726EC9CDFBF0210A8DF /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9944F3C4EA7BC41B0BBFA490 /* Build configuration list for PBXProject "twin-desktop" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB865726EC9CDFBF0210A8DF /* debug */,
+				65FA9784814F9988C0CF39E8 /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		B92C748069C972DE63C8B800 /* Build configuration list for PBXNativeTarget "twin-desktop_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8121B84E8B5CCD9C8E5AAA62 /* debug */,
+				93BBCD9F5109853F82E9FDF0 /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B100A8B7C3B651408E552CBC /* Project object */;
+}

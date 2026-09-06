@@ -4,7 +4,7 @@
 # `npm run dmg` builds the installer.
 [package]
 name = "twin-desktop"
-version = "1.14.0"
+version = "1.15.0"
 description = "Twin — a personal contact system"
 edition = "2021"
 
@@ -17,6 +17,12 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
+
+# Desktop-only plugins: a global keyboard shortcut and window geometry
+# persistence have no meaning on iOS/Android (no global hotkeys, no windows),
+# and the crates don't build for mobile targets. cfg(desktop) isn't a Cargo
+# cfg, so gate by the concrete desktop OSes.
+[target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))'.dependencies]
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-window-state = "2"
 

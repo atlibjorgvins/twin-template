@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "Twin mobile (iOS/Android): core IPC for the single app WebView. No global shortcut or spotlight window — those are desktop-only.",
+  "platforms": ["iOS", "android"],
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
